@@ -1,0 +1,33 @@
+.main {
+    background-color: purple;
+}
+
+.navbar {
+    background-color: #0177FF;
+    height: 50px;
+    display: block;
+    &_logout {
+        cursor: pointer;
+        box-shadow: rgba(0, 0, 0, 0.15) 0px 3px 3px 0px;
+        &:hover {
+            opacity: 0.9;
+        }
+    }
+    &_content {
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0 8px;
+        border-radius: 10px;
+    }
+}
+
+.side_menu {
+    background-color: blue;
+}
+
+.details_page {
+    background-color: red;
+}
