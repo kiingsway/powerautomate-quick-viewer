@@ -1,122 +1,67 @@
 .cardContainer {
     padding: 3px;
     height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .App {
     background-color: #333;
-}
-
-.login {
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.login {
+    margin: 30px 0;
+    width: 400px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     flex-direction: column;
+    &_form {
+        margin: 10px;
+        padding: 0;
+    }
     &_error {
         color: red;
         max-width: 300px;
         overflow: auto;
         word-break: break-word;
         font-family: 'Consolas';
-        margin: 10px 0;
+        transition: all 500ms;
+        margin: 5px 0;
     }
     &_button {
-        transition: all 200ms;
+        transition: all 500ms;
         width: 80px;
         height: 30px;
-        &_loading {
-            width: 80px;
-            height: 80px;
-            display: inline-block;
-            position: relative;
-            & div {
-                animation: lds-roller 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-                transform-origin: 40px 40px;
-            }
-            & div:after {
-                content: " ";
-                display: block;
-                position: absolute;
-                width: 7px;
-                height: 7px;
-                border-radius: 50%;
-                background: #fff;
-                margin: -4px 0 0 -4px;
-            }
-        }
-        &_loading div:nth-child(1) {
-            animation-delay: -0.036s;
-        }
-        &_loading div:nth-child(1):after {
-            top: 63px;
-            left: 63px;
-        }
-        &_loading div:nth-child(2) {
-            animation-delay: -0.072s;
-        }
-        &_loading div:nth-child(2):after {
-            top: 68px;
-            left: 56px;
-        }
-        &_loading div:nth-child(3) {
-            animation-delay: -0.108s;
-        }
-        &_loading div:nth-child(3):after {
-            top: 71px;
-            left: 48px;
-        }
-        &_loading div:nth-child(4) {
-            animation-delay: -0.144s;
-        }
-        &_loading div:nth-child(4):after {
-            top: 72px;
-            left: 40px;
-        }
-        &_loading div:nth-child(5) {
-            animation-delay: -0.18s;
-        }
-        &_loading div:nth-child(5):after {
-            top: 71px;
-            left: 32px;
-        }
-        &_loading div:nth-child(6) {
-            animation-delay: -0.216s;
-        }
-        &_loading div:nth-child(6):after {
-            top: 68px;
-            left: 24px;
-        }
-        &_loading div:nth-child(7) {
-            animation-delay: -0.252s;
-        }
-        &_loading div:nth-child(7):after {
-            top: 63px;
-            left: 17px;
-        }
-        &_loading div:nth-child(8) {
-            animation-delay: -0.288s;
-        }
-        &_loading div:nth-child(8):after {
-            top: 56px;
-            left: 12px;
-        }
-        @keyframes lds-roller {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
     }
     &_label {
         font-size: 18px;
-        margin-bottom: 10px;
     }
     &_pasteToken {
         cursor: pointer;
         &:hover {
             opacity: 0.7;
+        }
+    }
+}
+
+.spin {
+    animation-name: spin;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
         }
     }
 }

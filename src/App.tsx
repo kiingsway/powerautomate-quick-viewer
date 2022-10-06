@@ -4,7 +4,8 @@ import { Card } from '@fluentui/react-components/unstable';
 import MainScreen from './components/MainScreen';
 import { GetEnvironments } from './services/requests';
 import { Button, Input, Label, Textarea, Tooltip } from '@fluentui/react-components';
-import { BiClipboard, BiSkipNext } from 'react-icons/bi'
+import { BiClipboard } from 'react-icons/bi'
+import { SiSpinrilla } from 'react-icons/si'
 
 export default function App() {
 
@@ -55,12 +56,11 @@ export default function App() {
 
         {
           environments.length ?
-            <>
-              <MainScreen
-                environments={environments}
-                handleLogout={handleLogout}
-              />
-            </>
+            <MainScreen
+              environments={environments}
+              handleLogout={handleLogout}
+              token={token}
+            />
             :
             <LoginPage handleLogin={handleLogin} token={token} setToken={setToken} error={error} loadingLogin={loadingLogin} />
         }
@@ -87,13 +87,13 @@ const LoginPage = (pr: { handleLogin: any, token: string; setToken: any; error: 
   }
 
   return (
-    <div className={styles.login}>
+    <Card className={styles.login}>
 
       <Label htmlFor={txtBearer} className={styles.login_label}>
         Insira o Token Bearer
       </Label>
 
-      <div>
+      <div className={styles.login_form}>
         <Input
           id={txtBearer}
           type="search"
@@ -119,18 +119,13 @@ const LoginPage = (pr: { handleLogin: any, token: string; setToken: any; error: 
         appearance="primary"
         onClick={pr.handleLogin}
         className={styles.login_button}
-
-        style={{ height: pr.loadingLogin ? '80px' : '30px' }}
       >
-        {
-          pr.loadingLogin ?
-            <div className={styles.login_button_loading}><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
-            :
-            'Login'
-
-        }
+        {pr.loadingLogin ?
+          <SiSpinrilla className={styles.spin} />
+          :
+          'Login'}
       </Button>
 
-    </div>
+    </Card>
   )
 }
