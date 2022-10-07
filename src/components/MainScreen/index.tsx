@@ -268,13 +268,12 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
   if (!pr.selectedFlow) return null
 
   const Status = () => {
-    const state = pr.selectedFlow.properties.state;
-    const status = state === 'Suspended' ? 'Suspenso'
-      : (state === 'Stopped' ? 'Desligado'
-        : (state === 'Stated' ? 'Ligado'
-          : state))
-
-    return <LabelText label={'Status:'}>{status}</LabelText>
+    const states = {
+      Suspended: 'Suspenso',
+      Stopped: 'Desativado',
+      Started: 'Ativado'
+    }
+    return <LabelText label={'Status:'}>{states[pr.selectedFlow.properties.state as keyof typeof states]}</LabelText>
   }
 
   const Description = () => {
