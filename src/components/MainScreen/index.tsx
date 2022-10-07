@@ -1,20 +1,19 @@
-import { Avatar, AvatarNamedColor, Badge, Button, Divider, MenuItem, MenuList, PresenceBadge, Textarea, Title3, Tooltip } from '@fluentui/react-components'
+import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, MenuItem, MenuList, PresenceBadge, Textarea, Title3, Tooltip } from '@fluentui/react-components'
 import styles from './MainScreen.module.scss'
-import { BiDetail, BiHistory, BiLogOut, BiPowerOff, BiTrash } from 'react-icons/bi'
-import { Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Overflow, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
+import { BiDetail, BiHistory, BiLogOut, BiTrash } from 'react-icons/bi'
+import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
 import { useEffect, useState } from 'react';
-import { GetFlows } from '../../services/requests';
-import { AiFillStop } from 'react-icons/ai';
+import { DeleteFlow, GetFlows, UpdateStateFlow } from '../../services/requests';
+import { AiFillCloseCircle } from 'react-icons/ai';
 import { BiCloudDownload } from 'react-icons/bi';
 import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
-import { BsCheckCircleFill, BsFillStopCircleFill, BsFillStopFill, BsPeople, BsPlayFill } from 'react-icons/bs';
+import { BsFillStopFill, BsPeople, BsPlayFill } from 'react-icons/bs';
 import { SiSpinrilla } from 'react-icons/si';
 import { VscExport } from 'react-icons/vsc';
-
-
 import classNames from 'classnames'
 import { DateTime } from 'luxon'
 import './MainScreen.css'
+import uuid from 'react-uuid';
 
 
 /*
@@ -45,6 +44,8 @@ export default function MainScreen(props: Props) {
   const [flowsList, setFlowsList] = useState<any[]>();
   const [loadings, setLoadings] = useState<ILoadings>({ flows: false });
   const [selectedFlow, selectFlow] = useState<any>();
+
+  useEffect(() => { return }, [selectedFlow])
 
   const handleGetFlows = (sharedType: 'personal' | 'team') => {
     setLoadings(prev => ({ ...prev, flows: true }))
@@ -82,6 +83,9 @@ export default function MainScreen(props: Props) {
           {
             selectedFlow ?
               <Main
+                setFlowsList={setFlowsList}
+                selectFlow={selectFlow}
+                token={props.token}
                 selectedFlow={selectedFlow}
               /> : null
           }
@@ -114,6 +118,7 @@ const SideMenu = (pr: {
   selectFlow: React.Dispatch<any>;
 }) => {
 
+
   const colors: AvatarNamedColor[] = [
     'blue', 'pink', 'red',
     'dark-red', 'cranberry',
@@ -126,14 +131,10 @@ const SideMenu = (pr: {
     'magenta', 'plum', 'beige', 'mink',
     'platinum', 'anchor']
 
-  console.log(pr.flowsList)
-
   return (
-    <Card className={styles.side_menu_content}>
+    <Card className={styles.side_menu_content} key={pr.selectedFlow?.name || 'null'}>
       <Title3>Ambientes</Title3>
       <div className={styles.environment_list + ' ' + styles.modern_scroll}>
-
-
         {
           pr.environments.map((env, index) => (
             <div className={styles.environment_list_env} key={env.name}>
@@ -228,11 +229,11 @@ const SideMenu = (pr: {
                           <div className={styles.mini_muted}>
                             {
                               flow.properties.state === 'Started' ?
-                                <BsCheckCircleFill className={styles.state_started} title={flow.properties.state} /> : (
+                                <PresenceBadge title={flow.properties.state} className={styles.state_started} /> : (
                                   flow.properties.state === 'Stopped' ?
-                                    <BsFillStopCircleFill className={styles.state_stopped} title={flow.properties.state} />
+                                    <PresenceBadge outOfOffice status="offline" className={styles.state_stopped} title={flow.properties.state} />
                                     :
-                                    <AiFillStop className={styles.state_suspended} title={flow.properties.state} />
+                                    <PresenceBadge outOfOffice status="busy" className={styles.state_suspended} title={flow.properties.state} />
                                 )
                             }
                             <span>{friendlyDate(flow.properties.lastModifiedTime)}</span>
@@ -251,10 +252,20 @@ const SideMenu = (pr: {
   )
 }
 
-const Main = (pr: { selectedFlow: any }) => {
+const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch<any>, setFlowsList: React.Dispatch<any> }) => {
 
 
+  const loadingDefault = {
+    state: false,
+    edit: false,
+    download: false,
+    delete: false
+  }
 
+  const [loadins, setLoading] = useState(loadingDefault);
+  const [errors, setErrors] = useState<any[]>([]);
+
+  if (!pr.selectedFlow) return null
 
   const Status = () => {
     const state = pr.selectedFlow.properties.state;
@@ -349,11 +360,46 @@ const Main = (pr: { selectedFlow: any }) => {
     const txt = `Óbvio que não tá funcionando kkkk tá muito bonitinho pra ser tão funcional assim.`
     // const txt = `Óbvio que não tá funcionando kkkk tá muito bonitinho pra ser verdade. ${action}`
 
-    if (action === 'turnOn' ||
-      action === 'turnOff' ||
-      action === 'delete' ||
-      action === 'download' ||
-      action === 'modifyFlow') { alert(txt); return }
+    const handleErrors = (e: any) => {
+      console.log(e);
+      setErrors(prev => ([...prev, { id: uuid(), msg: JSON.stringify(e.response.data.error) }]))
+    }
+
+    if (action === 'download' ||
+      action === 'modifyFlow') { }
+
+    if (action === 'turnOn' || action === 'turnOff') {
+      setLoading(prev => ({ ...prev, state: true }))
+
+      UpdateStateFlow(pr.token, pr.selectedFlow.properties.environment.name, pr.selectedFlow.name, action)
+        .catch(handleErrors)
+        .then(() => {
+          let newSelectedFlow = pr.selectedFlow;
+          newSelectedFlow.properties.state = action === 'turnOn' ? 'Started' : 'Stopped';
+          pr.selectFlow(newSelectedFlow)
+
+        })
+        .finally(() => setLoading(prev => ({ ...prev, state: false })))
+
+      return
+    }
+
+    if (action === 'delete') {
+      setLoading(prev => ({ ...prev, delete: true }))
+
+      DeleteFlow(pr.token, pr.selectedFlow.properties.environment.name, pr.selectedFlow.name)
+        .catch(handleErrors)
+        .then(() => {
+          pr.setFlowsList((prev: any) => prev.filter((flow: any) => flow.name !== pr.selectedFlow.name))
+          pr.selectFlow(null)
+        })
+        .finally(() => setLoading(prev => ({ ...prev, delete: false })))
+
+      return
+
+    }
+
+    alert(txt); return
 
   }
 
@@ -397,6 +443,49 @@ const Main = (pr: { selectedFlow: any }) => {
     )
   }
 
+  const DeleteButton = () => {
+
+    return (
+      <Dialog modalType="alert">
+        <DialogTrigger>
+
+
+          <ToolbarButton>
+
+            {
+              loadins.delete ?
+                <><SiSpinrilla className={classNames('details-info-links-icon details-info-links-danger', styles.spin)} /> Excluindo fluxo...</>
+                : <><BiTrash className='details-info-links-icon details-info-links-danger' />Excluir fluxo</>
+            }
+          </ToolbarButton>
+
+        </DialogTrigger>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Tem certeza que deseja excluir esse fluxo?</DialogTitle>
+            <DialogContent>
+              <p>Você terá 28 dias para restaurar o fluxo.</p>
+              <p>Veja também:</p>
+              <Button
+                appearance='subtle'
+                icon={<HiOutlineExternalLink />}
+                as='a'
+                href='https://learn.microsoft.com/en-us/power-automate/how-tos-restore-deleted-flow'
+                target='__blank'>
+                Como restaurar fluxo excluído
+
+              </Button>
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="primary" onClick={() => handleFlowActions('delete')}>Excluir</Button>
+              <DialogTrigger><Button appearance="secondary">Cancelar</Button></DialogTrigger>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+    )
+  }
+
   const state = pr.selectedFlow.properties.state;
 
   const FlowToolbar = () => {
@@ -412,12 +501,18 @@ const Main = (pr: { selectedFlow: any }) => {
           relationship="label"
         >
           <ToolbarButton onClick={() => handleFlowActions(isFlowRunning ? 'turnOff' : 'turnOn')}>
+
             {
-              isFlowRunning ?
-                <><BsFillStopFill className='details-info-links-icon' /> Desligar fluxo</>
-                :
-                <><BsPlayFill className='details-info-links-icon' />Ligar fluxo</>
+              loadins.state ?
+                <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> {isFlowRunning ? 'Desligando fluxo...' : 'Ligando fluxo...'}</>
+                : (
+                  isFlowRunning ?
+                    <><BsFillStopFill className='details-info-links-icon' /> Desligar fluxo</>
+                    :
+                    <><BsPlayFill className='details-info-links-icon' />Ligar fluxo</>
+                )
             }
+
           </ToolbarButton>
         </Tooltip>
 
@@ -428,23 +523,20 @@ const Main = (pr: { selectedFlow: any }) => {
           <EditModal />
         </Tooltip>
 
-        <Tooltip
+        {/* <Tooltip
           content='Fazer o download do pacote legado (.zip) do fluxo. Os detalhes do pacote serão preenchidos com inforamações já preenchidas no fluxo'
           relationship="label">
 
-          <ToolbarButton  onClick={() => handleFlowActions('download')}>
+          <ToolbarButton onClick={() => handleFlowActions('download')}>
             <BiCloudDownload className='details-info-links-icon' />
             Baixar fluxo
           </ToolbarButton>
 
-        </Tooltip>
+        </Tooltip> */}
 
         <Tooltip content='Exclua o fluxo' relationship="label">
 
-          <ToolbarButton  onClick={() => handleFlowActions('delete')}>
-            <BiTrash className='details-info-links-icon details-info-links-danger' />
-            Excluir fluxo
-          </ToolbarButton>
+          <DeleteButton />
 
         </Tooltip>
 
@@ -452,6 +544,7 @@ const Main = (pr: { selectedFlow: any }) => {
       </Toolbar>
     )
   }
+
 
 
   return (
@@ -462,18 +555,41 @@ const Main = (pr: { selectedFlow: any }) => {
 
           <Title3 title={pr.selectedFlow.properties.displayName} className={styles.details_page_topic}>
 
-            {pr.selectedFlow.properties.state === 'Started' ?
-              <PresenceBadge title={pr.selectedFlow.properties.state} /> : (
-                pr.selectedFlow.properties.state === 'Stopped' ?
-                  <BsFillStopCircleFill className={styles.state_stopped} title={pr.selectedFlow.properties.state} />
-                  :
-                  <AiFillStop className={styles.state_suspended} title={pr.selectedFlow.properties.state} />
-              )}
+
+            {
+              pr.selectedFlow.properties.state === 'Started' ?
+                <PresenceBadge title={pr.selectedFlow.properties.state} className={styles.state_started} /> : (
+                  pr.selectedFlow.properties.state === 'Stopped' ?
+                    <PresenceBadge outOfOffice status="offline" className={styles.state_stopped} title={pr.selectedFlow.properties.state} />
+                    :
+                    <PresenceBadge outOfOffice status="busy" className={styles.state_suspended} title={pr.selectedFlow.properties.state} />
+                )
+            }
 
             {pr.selectedFlow.properties.displayName}
           </Title3>
 
           <FlowToolbar />
+
+          {
+            errors.map(error => (
+              <Alert
+                key={error.id}
+                style={{ marginBottom: 5, display: 'flex', alignItems: 'center', flexDirection: 'row' }}
+                intent="error"
+                action={<span
+                  onClick={() => setErrors(prev => prev.filter(e => e.id !== error.id))}>
+                  <span>Fechar</span>
+                  <AiFillCloseCircle style={{ marginLeft: 5 }} />
+                </span>}
+              >
+                <span style={{ maxWidth: 600, overflow: 'auto', wordBreak: 'break-word', fontSize: 10, lineHeight: 1, fontFamily: 'Consolas' }}>
+                  {String(error.msg).replace(/pr.token/gi, '**sanitized**')}
+
+                </span>
+              </Alert>
+            ))
+          }
 
         </div>
 
@@ -527,8 +643,10 @@ const Main = (pr: { selectedFlow: any }) => {
 
         <Card className='cards-triggerActions-trigger'>
 
-          <LabelText label={'Gatilho (properties.definitionSummary.triggers):'}>
+          <LabelText label={<>Gatilho<br /> (properties.definitionSummary.triggers):</>}>
+
             <Textarea
+              rows={4}
               className={'cards-triggerActions-txtarea ' + styles.modern_scroll}
               resize="vertical"
               value={JSON.stringify(pr.selectedFlow.properties?.definitionSummary?.triggers[0], null, 2)} />
@@ -537,8 +655,9 @@ const Main = (pr: { selectedFlow: any }) => {
         </Card>
 
         <Card className='cards-triggerActions-actions'>
-          <LabelText label={'Ações (properties.definitionSummary.actions):'}>
+          <LabelText label={<>Ações<br /> (properties.definitionSummary.actions):</>}>
             <Textarea
+              rows={4}
               className={classNames('cards-triggerActions-txtarea', styles.modern_scroll)}
               resize="vertical"
               value={JSON.stringify(pr.selectedFlow.properties?.definitionSummary?.actions, null, 2)} />
