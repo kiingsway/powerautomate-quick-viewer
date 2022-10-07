@@ -34,11 +34,49 @@ export const UpdateStateFlow = (token: string, environmentName: string, flowName
 }
 
 export const DeleteFlow = (token: string, environmentName: string, flowName: string) => {
-    
+
     const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01`;
     const opt = {
         headers: { 'Accept': 'application/json', 'authorization': token }
     }
 
-    return axios.delete(uri,opt)
+    return axios.delete(uri, opt)
+}
+export const GetFlow = (token: string, environmentName: string, flowName: string) => {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01&$expand=definition`;
+    const opt = {
+        headers: { 'Accept': 'application/json', 'authorization': token }
+    }
+
+    return axios.get(uri, opt)
+}
+export const GetFlowRuns = (token: string, environmentName: string, flowName: string) => {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/runs?api-version=2016-11-01`;
+    const opt = {
+        headers: { 'Accept': 'application/json', 'authorization': token }
+    }
+
+    return axios.get(uri, opt)
+}
+export const GetFlowHistories = (token: string, environmentName: string, flowName: string, trigger: string) => {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/triggers/${trigger}/histories?&expand=properties&api-version=2016-11-01`;
+    const opt = {
+        headers: { 'Accept': 'application/json', 'authorization': token }
+    }
+
+    return axios.get(uri, opt)
+}
+
+export const UpdateFlow = (token: string, environmentName: string, flowName: string, newDefinition: any) => {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01`;
+    const opt = {
+        headers: { 'Accept': 'application/json', 'authorization': token }
+    }
+
+
+    return axios.patch(uri, newDefinition, opt)
 }

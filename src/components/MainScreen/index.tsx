@@ -1,9 +1,9 @@
-import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, MenuItem, MenuList, PresenceBadge, Textarea, Title3, Tooltip } from '@fluentui/react-components'
+import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, Input, Label, MenuItem, MenuList, PresenceBadge, PresenceBadgeStatus, Textarea, Title3, Tooltip } from '@fluentui/react-components'
 import styles from './MainScreen.module.scss'
 import { BiDetail, BiHistory, BiLogOut, BiTrash } from 'react-icons/bi'
-import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
+import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, TableBody, TableCell, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
 import { useEffect, useState } from 'react';
-import { DeleteFlow, GetFlows, UpdateStateFlow } from '../../services/requests';
+import { DeleteFlow, GetFlow, GetFlowHistories, GetFlowRuns, GetFlows, UpdateFlow, UpdateStateFlow } from '../../services/requests';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { BiCloudDownload } from 'react-icons/bi';
 import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
@@ -14,6 +14,7 @@ import classNames from 'classnames'
 import { DateTime } from 'luxon'
 import './MainScreen.css'
 import uuid from 'react-uuid';
+import { Table } from '@fluentui/react-components/unstable';
 
 
 /*
@@ -45,7 +46,32 @@ export default function MainScreen(props: Props) {
   const [loadings, setLoadings] = useState<ILoadings>({ flows: false });
   const [selectedFlow, selectFlow] = useState<any>();
 
-  useEffect(() => { return }, [selectedFlow])
+  useEffect(() => console.log(selectedFlow), [selectedFlow])
+
+  useEffect(() => {
+    if (selectedFlow?.name && !selectedFlow?.properties?.definition) {
+      const selEnv = selectedFlow.properties.environment.name;
+
+      setLoadings(prev => ({ ...prev, flows: true }))
+      GetFlow(props.token, selEnv, selectedFlow.name)
+        .then(flowData => {
+          const trigg = Object.keys(flowData.data.properties.definition.triggers)[0];
+          GetFlowRuns(props.token, selEnv, selectedFlow.name)
+            .then(runsData =>
+              GetFlowHistories(props.token, selEnv, selectedFlow.name, trigg)
+                .then(historiesData => {
+                  const runs = runsData.data;
+                  const histories = historiesData.data;
+                  selectFlow({ ...flowData.data, runs, histories });
+                })
+            )
+        }
+        )
+        .catch(e => { alert(e); console.log(e) })
+        .finally(() => setLoadings(prev => ({ ...prev, flows: false })))
+    }
+
+  }, [selectedFlow])
 
   const handleGetFlows = (sharedType: 'personal' | 'team') => {
     setLoadings(prev => ({ ...prev, flows: true }))
@@ -254,7 +280,6 @@ const SideMenu = (pr: {
 
 const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch<any>, setFlowsList: React.Dispatch<any> }) => {
 
-
   const loadingDefault = {
     state: false,
     edit: false,
@@ -264,8 +289,14 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
   const [loadins, setLoading] = useState(loadingDefault);
   const [errors, setErrors] = useState<any[]>([]);
+  const [editFlowProperties, setFlowProperties] = useState<any>(pr.selectedFlow.properties);
+  const [isEditModalOpen, modalMustBeOpened] = useState(false);
+  const [flowRuns, setFlowRuns] = useState<any[]>([]);
+  useEffect(() => setFlowProperties(pr.selectedFlow.properties), [pr.selectedFlow.properties])
+  useEffect(() => Array.isArray(pr.selectedFlow?.runs) ? setFlowRuns(pr.selectedFlow.runs) : undefined, [pr.selectedFlow])
 
   if (!pr.selectedFlow) return null
+
 
   const Status = () => {
     const states = {
@@ -361,11 +392,9 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
     const handleErrors = (e: any) => {
       console.log(e);
-      setErrors(prev => ([...prev, { id: uuid(), msg: JSON.stringify(e.response.data.error) }]))
+      const msg = e.response.data?.error ? JSON.stringify(e.response.data.error) : JSON.stringify(e.response.data?.message)
+      setErrors(prev => ([{ id: uuid(), msg }, ...prev]))
     }
-
-    if (action === 'download' ||
-      action === 'modifyFlow') { }
 
     if (action === 'turnOn' || action === 'turnOff') {
       setLoading(prev => ({ ...prev, state: true }))
@@ -398,6 +427,39 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
     }
 
+    if (action === 'modifyFlow') {
+      setLoading(prev => ({ ...prev, edit: true }))
+      const newFlowProperties = {
+        properties: {
+          definition: editFlowProperties.definition,
+          // connectionReferences: editFlowProperties.connectionReferences,
+          // parameters: editFlowProperties.parameters,
+          displayName: editFlowProperties.displayName,
+          // templateName: editFlowProperties.templateName,
+          // environment: editFlowProperties.environment,
+        }
+      }
+
+
+      UpdateFlow(pr.token, pr.selectedFlow.properties.environment.name, pr.selectedFlow.name, newFlowProperties)
+        .then(resp => {
+          const savedFlow = resp?.data;
+          modalMustBeOpened(false);
+          setErrors(prev => [{ id: uuid(), msg: 'Fluxo salvo! (o ícone é de erro, mas deu tudo certo)' }, ...prev])
+          pr.selectFlow(savedFlow);
+          pr.setFlowsList((prev: any[]) => {
+            const selectedFlowIndex = prev.map(f => f.name).indexOf(savedFlow.name);
+            let newList = prev;
+            newList[selectedFlowIndex] = savedFlow;
+            return newList
+          })
+        })
+        .catch(handleErrors)
+        .finally(() => setLoading(prev => ({ ...prev, edit: false })))
+
+      return
+    }
+
     alert(txt); return
 
   }
@@ -406,34 +468,58 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
     return (
 
-      <Dialog modalType="alert">
+      <Dialog modalType="alert" open={isEditModalOpen}>
         <DialogTrigger>
-          <ToolbarButton>
+          <ToolbarButton onClick={() => modalMustBeOpened(true)}>
             <HiOutlinePencilAlt className='details-info-links-icon' />
             Editar fluxo
           </ToolbarButton>
         </DialogTrigger>
 
-        <DialogSurface>
+        <DialogSurface className='edit-flow-modal'>
           <DialogBody>
             <DialogTitle>Edição do fluxo</DialogTitle>
             <DialogContent>
+              <div className='edit-flow-modal-body'>
+                <Label htmlFor="txtFlowDisplayName" className='edit-flow-modal-label'>Nome do fluxo:</Label>
+                <Input
+                  id="txtFlowDisplayName"
+                  onChange={e => setFlowProperties((prev: any) => ({ ...prev, displayName: e.target.value }))}
+                  value={editFlowProperties.displayName} />
 
-              <Textarea
-                className={classNames('cards-triggerActions-txtarea', styles.modern_scroll, 'h-100')}
-                resize="vertical"
-                value={JSON.stringify(pr.selectedFlow.properties?.definitionSummary, null, 4)} />
+                <Label htmlFor="txtFlowDescription" className='edit-flow-modal-label'>Descrição do fluxo:</Label>
+                <Textarea
+                  id='txtFlowDescription'
+                  className={classNames('cards-triggerActions-txtarea', styles.modern_scroll_txa)}
+                  resize="vertical"
+                  onChange={e => setFlowProperties((prev: any) => ({ ...prev, definition: { ...prev.definition, description: e.target.value } }))}
+                  value={editFlowProperties.definition?.description} />
 
+                <Label htmlFor="txtFlowDefinition" className='edit-flow-modal-label'>Definição do fluxo
+                  <small className='tip'> (a descrição do fluxo é definido no campo acima)</small>:</Label>
+                <Textarea
+                  id='txtFlowDefinition'
+                  className={classNames('cards-triggerActions-txtarea txa_code', styles.modern_scroll_txa)}
+                  resize="vertical"
+                  onChange={e => setFlowProperties((prev: any) => ({ ...prev, definition: { ...JSON.parse(e.target.value), description: prev.definition.description } }))}
+                  value={JSON.stringify(editFlowProperties.definition, null, 2)} />
+              </div>
             </DialogContent>
             <DialogActions>
               <DialogTrigger>
-                <Button appearance="outline">Cancelar</Button>
+                <Button appearance="outline" onClick={() => modalMustBeOpened(false)}>Cancelar</Button>
               </DialogTrigger>
               <Button
+                disabled={loadins.edit}
                 appearance="primary"
                 onClick={() => handleFlowActions('modifyFlow')}
               >
-                Salvar
+                {
+                  loadins.edit ?
+                    <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Salvando...</>
+                    : 'Salvar'
+                }
+
               </Button>
             </DialogActions>
           </DialogBody>
@@ -447,10 +533,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     return (
       <Dialog modalType="alert">
         <DialogTrigger>
-
-
           <ToolbarButton>
-
             {
               loadins.delete ?
                 <><SiSpinrilla className={classNames('details-info-links-icon details-info-links-danger', styles.spin)} /> Excluindo fluxo...</>
@@ -515,28 +598,14 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           </ToolbarButton>
         </Tooltip>
 
-
         <Tooltip
           content='Abre uma janela para edição da definição JSON do fluxo. A verificação de erros é feita no servidor, então qualquer erro na definição você será informado e o fluxo não será salvo.'
           relationship="label">
           <EditModal />
         </Tooltip>
 
-        {/* <Tooltip
-          content='Fazer o download do pacote legado (.zip) do fluxo. Os detalhes do pacote serão preenchidos com inforamações já preenchidas no fluxo'
-          relationship="label">
-
-          <ToolbarButton onClick={() => handleFlowActions('download')}>
-            <BiCloudDownload className='details-info-links-icon' />
-            Baixar fluxo
-          </ToolbarButton>
-
-        </Tooltip> */}
-
         <Tooltip content='Exclua o fluxo' relationship="label">
-
           <DeleteButton />
-
         </Tooltip>
 
         <ToolbarDivider />
@@ -638,6 +707,31 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
       </Card>
 
+      <Card style={{ margin: '15px 0' }}>
+        <LabelText label='Histórico de execução' labelOnly />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {['Início', 'Duração', 'Status'].map(col => (
+                <TableHeaderCell key={col}>{col}</TableHeaderCell>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {flowRuns?.map((run: any) => (
+              <TableRow key={run.name}>
+                <TableCell>
+                  {DateTime.fromISO(run.properties.startTime, { locale: 'pt-BR' }).toFormat('dd LLL yy HH:mm:ss')}
+                </TableCell>
+                <TableCell>{'duração...'}</TableCell>
+                <TableCell>{run.properties.status}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+      </Card>
+
       <div className="cards-triggerActions">
 
         <Card className='cards-triggerActions-trigger'>
@@ -668,7 +762,9 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     </div>
   )
 }
-const LabelText = (pr: { children: any, label: string | JSX.Element }) => {
+const LabelText = (pr: { children?: any, label: string | JSX.Element; labelOnly?: boolean }) => {
+
+  if (pr.labelOnly) return <div className={styles.labelText}> <span className={styles.labelText_Label}> {pr.label} </span></div>
 
   return (
     <div className={styles.labelText}>

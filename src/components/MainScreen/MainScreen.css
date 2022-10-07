@@ -71,3 +71,27 @@
 .h-100 {
     height: 100%;
 }
+
+.edit-flow-modal-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.edit-flow-modal-body textarea {
+    height: 200px;
+}
+
+.edit-flow-modal-label {
+    font-weight: 600;
+    margin-top: 8px;
+    margin-bottom: 2px;
+}
+
+.txa_code textarea {
+    font-family: 'Consolas' !important;
+    font-size: 11px;
+}
+
+.tip {
+    font-size: 11px;
+}
