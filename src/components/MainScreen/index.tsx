@@ -7,7 +7,7 @@ import { DeleteFlow, GetFlow, GetFlowHistories, GetFlowRuns, GetFlows, RunFlow, 
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { BiCloudDownload } from 'react-icons/bi';
 import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
-import { BsFillPlayFill, BsFillStopFill, BsPeople, BsPlayFill } from 'react-icons/bs';
+import { BsFillPlayFill, BsFillStopFill, BsPeople, BsPlayFill, BsToggleOff, BsToggleOn } from 'react-icons/bs';
 import { SiSpinrilla } from 'react-icons/si';
 import { VscExport } from 'react-icons/vsc';
 import classNames from 'classnames'
@@ -138,7 +138,7 @@ const NavBar = (pr: { handleLogout: () => void; environmentsCount: number }) => 
       <Badge appearance="ghost" color="informative">
         {pr.environmentsCount} ambientes encontrados
       </Badge>
-      <Avatar icon={<BiLogOut />} aria-label="Guest" size={40} className={styles.navbar_logout} onClick={pr.handleLogout} />
+      <Avatar icon={<BiLogOut />} aria-label="Log-out" size={40} className={styles.navbar_logout} onClick={pr.handleLogout} />
     </div>
   )
 }
@@ -306,6 +306,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     triggerName: pr.selectedFlow.properties?.definition ? Object.keys(pr.selectedFlow.properties.definition.triggers)[0] : null,
     envName: pr.selectedFlow.properties.environment.name,
     uriTrigger: pr.selectedFlow.properties?.flowTriggerUri,
+    connectionReferences: Object.keys(pr.selectedFlow.properties.connectionReferences ?? {}) as any[],
   }
 
   const Status = () => {
@@ -622,14 +623,16 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
     if (!selFlow.uriTrigger) return null
 
+    console.log(pr.selectedFlow)
+
     return (
       <Dialog modalType="alert">
         <DialogTrigger>
-          <ToolbarButton>
+          <ToolbarButton className={classNames({ ['details-info-links-warning']: selFlow.state !== 'Started' })}>
             {
               loadins.running ?
                 <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Executando...</>
-                : <><BsFillPlayFill className='details-info-links-icon' />Executar</>
+                : <><BsFillPlayFill className={classNames('details-info-links-icon', { ['details-info-links-warning']: selFlow.state !== 'Started' })} />Executar</>
             }
           </ToolbarButton>
         </DialogTrigger>
@@ -637,9 +640,28 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           <DialogBody>
             <DialogTitle>Conexões do fluxo</DialogTitle>
             <DialogContent>
-              Lorem ipsum dolor sit amet consectetur, adipisicing elit.
-              Quasi, inventore eligendi officia ut quo, repellendus, atque impedit expedita ea dolor
-              quibusdam nam exercitationem quia commodi quis nisi reprehenderit eveniet necessitatibus?
+              <div className='connections'>
+                {!selFlow.connectionReferences.length && 'Não há conexões para este fluxo.'}
+                {selFlow.connectionReferences.map(connection => {
+                  const conn = pr.selectedFlow.properties.connectionReferences[connection];
+                  return (
+                    <div className='connection'>
+                      <Avatar
+                        size={40}
+                        style={{ marginRight: 8 }}
+                        name={conn.displayName}
+                        image={{ src: conn.iconUri }}
+                      />
+                      <div className='connection-text'>
+                        <span>{conn.displayName}</span>
+                        <span className='connection-text-small'>{conn.connectionName}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+
             </DialogContent>
             <DialogActions>
               <DialogTrigger><Button appearance="secondary">Cancelar</Button></DialogTrigger>
@@ -681,9 +703,9 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
                 <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> {isFlowStarted ? 'Desligando...' : 'Ligando...'}</>
                 : (
                   isFlowStarted ?
-                    <><BsFillStopFill className='details-info-links-icon' /> Desligar</>
+                    <><BsToggleOn className='details-info-links-icon' /> Desligar</>
                     :
-                    <><BsPlayFill className='details-info-links-icon' />Ligar</>
+                    <><BsToggleOff className='details-info-links-icon' />Ligar</>
                 )
             }
 

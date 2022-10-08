@@ -44,6 +44,11 @@
     color: red;
 }
 
+.details-info-links-warning:hover {
+    color: orangered !important;
+    transition: 300ms all ease-in-out;
+}
+
 .cards-triggerActions {
     display: flex;
     flex-direction: row;
@@ -94,4 +99,27 @@
 
 .tip {
     font-size: 11px;
+}
+
+.connection-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.connection-text-small {
+    color: #AAA;
+    font-size: 12px;
+}
+
+.connection {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.connections {
+    margin: 8px 0px 8px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
