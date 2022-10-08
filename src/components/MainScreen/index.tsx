@@ -15,6 +15,13 @@ import { DateTime } from 'luxon'
 import './MainScreen.css'
 import uuid from 'react-uuid';
 import { Table } from '@fluentui/react-components/unstable';
+// import './declaration.d.ts'
+
+import Editor from 'react-simple-code-editor';
+import { highlight, languages } from 'prismjs/components/prism-core';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/themes/prism.css'; //Example style, you can use another
 
 
 /*
@@ -46,7 +53,7 @@ export default function MainScreen(props: Props) {
   const [loadings, setLoadings] = useState<ILoadings>({ flows: false });
   const [selectedFlow, selectFlow] = useState<any>();
 
-  useEffect(() => console.log(selectedFlow), [selectedFlow])
+  // useEffect(() => console.log(selectedFlow), [selectedFlow])
 
   useEffect(() => {
     if (selectedFlow?.name && !selectedFlow?.properties?.definition) {
@@ -54,12 +61,12 @@ export default function MainScreen(props: Props) {
 
       setLoadings(prev => ({ ...prev, flows: true }))
       GetFlow(props.token, selEnv, selectedFlow.name)
-        .then(flowData => {
+        .then((flowData: any) => {
           const trigg = Object.keys(flowData.data.properties.definition.triggers)[0];
           GetFlowRuns(props.token, selEnv, selectedFlow.name)
-            .then(runsData =>
+            .then((runsData: any) =>
               GetFlowHistories(props.token, selEnv, selectedFlow.name, trigg)
-                .then(historiesData => {
+                .then((historiesData: any) => {
                   const runs = runsData.data;
                   const histories = historiesData.data;
                   selectFlow({ ...flowData.data, runs, histories });
@@ -287,8 +294,14 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     delete: false
   }
 
+  interface IError {
+    id: any;
+    msg: any;
+    intent?: "info" | "success" | "error" | "warning";
+  }
+
   const [loadins, setLoading] = useState(loadingDefault);
-  const [errors, setErrors] = useState<any[]>([]);
+  const [errors, setErrors] = useState<IError[]>([]);
   const [editFlowProperties, setFlowProperties] = useState<any>(pr.selectedFlow.properties);
   const [isEditModalOpen, modalMustBeOpened] = useState(false);
   const [flowRuns, setFlowRuns] = useState<any[]>([]);
@@ -297,6 +310,11 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
   if (!pr.selectedFlow) return null
 
+  const state = pr.selectedFlow.properties.state;
+  const trigger = pr.selectedFlow.properties.definitionSummary.triggers[0];
+  const actions = pr.selectedFlow.properties.definitionSummary.actions;
+
+  // console.log(actions)
 
   const Status = () => {
     const states = {
@@ -442,10 +460,10 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
 
       UpdateFlow(pr.token, pr.selectedFlow.properties.environment.name, pr.selectedFlow.name, newFlowProperties)
-        .then(resp => {
+        .then((resp: any) => {
           const savedFlow = resp?.data;
           modalMustBeOpened(false);
-          setErrors(prev => [{ id: uuid(), msg: 'Fluxo salvo! (o ícone é de erro, mas deu tudo certo)' }, ...prev])
+          setErrors(prev => [{ id: uuid(), msg: 'Fluxo salvo!', intent: 'success' }, ...prev])
           pr.selectFlow(savedFlow);
           pr.setFlowsList((prev: any[]) => {
             const selectedFlowIndex = prev.map(f => f.name).indexOf(savedFlow.name);
@@ -568,8 +586,6 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     )
   }
 
-  const state = pr.selectedFlow.properties.state;
-
   const FlowToolbar = () => {
 
     const isFlowRunning = state === 'Started';
@@ -614,7 +630,6 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
   }
 
 
-
   return (
     <div className={styles.details_page}>
 
@@ -639,25 +654,23 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
           <FlowToolbar />
 
-          {
-            errors.map(error => (
-              <Alert
-                key={error.id}
-                style={{ marginBottom: 5, display: 'flex', alignItems: 'center', flexDirection: 'row' }}
-                intent="error"
-                action={<span
-                  onClick={() => setErrors(prev => prev.filter(e => e.id !== error.id))}>
-                  <span>Fechar</span>
-                  <AiFillCloseCircle style={{ marginLeft: 5 }} />
-                </span>}
-              >
-                <span style={{ maxWidth: 600, overflow: 'auto', wordBreak: 'break-word', fontSize: 10, lineHeight: 1, fontFamily: 'Consolas' }}>
-                  {String(error.msg).replace(/pr.token/gi, '**sanitized**')}
+          {errors.map(error => (
+            <Alert
+              key={error.id}
+              style={{ marginBottom: 5, display: 'flex', alignItems: 'center', flexDirection: 'row' }}
+              intent={error?.intent ? error.intent : 'error'}
+              action={<span
+                onClick={() => setErrors(prev => prev.filter(e => e.id !== error.id))}>
+                <span>Fechar</span>
+                <AiFillCloseCircle style={{ marginLeft: 5 }} />
+              </span>}
+            >
+              <span style={{ maxWidth: 600, overflow: 'auto', wordBreak: 'break-word', fontSize: 10, lineHeight: 1, fontFamily: 'Consolas' }}>
+                {String(error.msg).replace(/pr.token/gi, '**sanitized**')}
 
-                </span>
-              </Alert>
-            ))
-          }
+              </span>
+            </Alert>
+          ))}
 
         </div>
 
@@ -721,7 +734,9 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
             {flowRuns?.map((run: any) => (
               <TableRow key={run.name}>
                 <TableCell>
-                  {DateTime.fromISO(run.properties.startTime, { locale: 'pt-BR' }).toFormat('dd LLL yy HH:mm:ss')}
+                  {DateTime
+                    .fromISO(run.properties.startTime, { locale: 'pt-BR' })
+                    .toFormat('dd LLL yy HH:mm:ss')}
                 </TableCell>
                 <TableCell>{'duração...'}</TableCell>
                 <TableCell>{run.properties.status}</TableCell>
@@ -735,27 +750,15 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
       <div className="cards-triggerActions">
 
         <Card className='cards-triggerActions-trigger'>
-
-          <LabelText label={<>Gatilho<br /> (properties.definitionSummary.triggers):</>}>
-
-            <Textarea
-              rows={4}
-              className={'cards-triggerActions-txtarea ' + styles.modern_scroll}
-              resize="vertical"
-              value={JSON.stringify(pr.selectedFlow.properties?.definitionSummary?.triggers[0], null, 2)} />
+          <LabelText label={'Gatilho:'}>
+            <TriggerActionsText trigger={trigger} />
           </LabelText>
-
         </Card>
 
         <Card className='cards-triggerActions-actions'>
-          <LabelText label={<>Ações<br /> (properties.definitionSummary.actions):</>}>
-            <Textarea
-              rows={4}
-              className={classNames('cards-triggerActions-txtarea', styles.modern_scroll)}
-              resize="vertical"
-              value={JSON.stringify(pr.selectedFlow.properties?.definitionSummary?.actions, null, 2)} />
+          <LabelText label={'Resumo das ações:'}>
+            <TriggerActionsText actions={actions} />
           </LabelText>
-
         </Card>
 
       </div>
@@ -775,5 +778,46 @@ const LabelText = (pr: { children?: any, label: string | JSX.Element; labelOnly?
         {pr.children}
       </span>
     </div>
+  )
+}
+
+const CodeEditor = (pr: { code: string }) => <Editor
+  value={JSON.stringify(JSON.parse(pr.code), null, 2)}
+  onValueChange={() => null}
+  highlight={code => highlight(code, languages.js)}
+  padding={10}
+  style={{
+    fontFamily: '"Fira code", "Fira Mono", monospace',
+    fontSize: 12,
+  }}
+/>
+
+const TriggerActionsText = (pr: { trigger?: any, actions?: any[] }) => {
+
+  const LabelText2 = (p: { title: string, value?: string }) => {
+
+    if (!p.value) return null
+
+    return <p style={{ marginTop: 3 }}>
+      <span style={{ fontWeight: 600, paddingRight: 5 }}>{p.title}</span>
+      {p.value}
+    </p>
+  }
+
+  if (pr.actions?.length) {
+    const actionsSummary = pr.actions.map(act => act.swaggerOperationId ? act.swaggerOperationId : act.type)
+    return (
+      <>
+        {actionsSummary.join(', ')}
+      </>
+    )
+  }
+
+  return (
+    <>
+      <LabelText2 title='Tipo:' value={pr.trigger?.type} />
+      <LabelText2 title='Espécie:' value={pr.trigger?.kind} />
+      <LabelText2 title='Operação:' value={pr.trigger?.swaggerOperationId} />
+    </>
   )
 }
