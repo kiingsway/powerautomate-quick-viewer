@@ -3,11 +3,11 @@ import styles from './MainScreen.module.scss'
 import { BiDetail, BiHistory, BiLogOut, BiTrash } from 'react-icons/bi'
 import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, TableBody, TableCell, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
 import { useEffect, useState } from 'react';
-import { DeleteFlow, GetFlow, GetFlowHistories, GetFlowRuns, GetFlows, UpdateFlow, UpdateStateFlow } from '../../services/requests';
+import { DeleteFlow, GetFlow, GetFlowHistories, GetFlowRuns, GetFlows, RunFlow, UpdateFlow, UpdateStateFlow } from '../../services/requests';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { BiCloudDownload } from 'react-icons/bi';
 import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
-import { BsFillStopFill, BsPeople, BsPlayFill } from 'react-icons/bs';
+import { BsFillPlayFill, BsFillStopFill, BsPeople, BsPlayFill } from 'react-icons/bs';
 import { SiSpinrilla } from 'react-icons/si';
 import { VscExport } from 'react-icons/vsc';
 import classNames from 'classnames'
@@ -15,8 +15,6 @@ import { DateTime } from 'luxon'
 import './MainScreen.css'
 import uuid from 'react-uuid';
 import { Table } from '@fluentui/react-components/unstable';
-// import './declaration.d.ts'
-
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
@@ -26,7 +24,10 @@ import 'prismjs/themes/prism.css'; //Example style, you can use another
 
 /*
 TAREFAS
-- ações da toolbar
+- ações da toolbar 🆗
+- Toolbar: Botão para executar fluxos de botão 🆗
+- Toolbar: Compartilhar fluxo, abrir modal para inserção do email
+- Toolbar: Download do fluxo
 - Filtro nos fluxos igual era no antigo
 - Gatilho e Ações mais bonitinho - pegar da api
 - Execuções do fluxo - pegar da api
@@ -151,6 +152,8 @@ const SideMenu = (pr: {
   selectFlow: React.Dispatch<any>;
 }) => {
 
+  const [searchFlow, setSearchFlow] = useState('');
+
 
   const colors: AvatarNamedColor[] = [
     'blue', 'pink', 'red',
@@ -163,6 +166,10 @@ const SideMenu = (pr: {
     'purple', 'grape', 'lilac', 'pink',
     'magenta', 'plum', 'beige', 'mink',
     'platinum', 'anchor']
+
+
+  let filteredFlows = searchFlow ? pr.flowsList.filter(flow => (flow.properties.displayName as string).toLowerCase().includes(searchFlow)) : pr.flowsList;
+  filteredFlows = filteredFlows.sort((a, b) => (a.properties.lastModifiedTime > b.properties.lastModifiedTime) ? -1 : 1)
 
   return (
     <Card className={styles.side_menu_content} key={pr.selectedFlow?.name || 'null'}>
@@ -218,36 +225,16 @@ const SideMenu = (pr: {
               <>
                 <Divider />
                 <Title3>Fluxos</Title3>
+                <Input
+                  value={searchFlow}
+                  onChange={e => setSearchFlow(e.target.value)}
+                  id="searchFlow"
+                  placeholder='Pesquisar...'
+                  type='search' />
+
                 <MenuList className={styles.flowsList + ' ' + styles.modern_scroll}>
                   {
-                    pr.flowsList.map(flow => {
-
-                      const friendlyDate = (date: string) => {
-                        const now = DateTime.now().setLocale('pt-BR');
-                        const dateTime = DateTime.fromISO(date, { locale: 'pt-BR' })
-                        const friendlyDates = {
-                          today: `hoje às ${dateTime.toFormat('HH:mm')}`,
-                          yesterday: `ontem às ${dateTime.toFormat('HH:mm')}`,
-                          week: `${dateTime.toFormat('cccc (dd)')} às ${dateTime.toFormat('HH:mm')}`,
-                          year: `${dateTime.toFormat('dd LLL')} às ${dateTime.toFormat('HH:mm')}`,
-                          default: dateTime.toFormat('dd LLL yyyy HH:mm')
-                        }
-
-                        if (dateTime.hasSame(now, 'day'))
-                          return friendlyDates.today
-
-                        if (dateTime.hasSame(now.minus({ days: 1 }), 'day'))
-                          return friendlyDates.yesterday
-
-                        if (dateTime.hasSame(now, 'week'))
-                          return friendlyDates.week
-
-                        if (dateTime.hasSame(now, 'year'))
-                          return friendlyDates.year
-
-                        return friendlyDates.default
-                      }
-
+                    filteredFlows.map(flow => {
                       return (
                         <MenuItem
                           key={flow.properties.name}
@@ -269,10 +256,9 @@ const SideMenu = (pr: {
                                     <PresenceBadge outOfOffice status="busy" className={styles.state_suspended} title={flow.properties.state} />
                                 )
                             }
-                            <span>{friendlyDate(flow.properties.lastModifiedTime)}</span>
+                            <span>{friendlyDate(DateTime.fromISO(flow.properties.lastModifiedTime))}</span>
                           </div>
                         </MenuItem>
-
                       )
                     })
                   }
@@ -288,6 +274,7 @@ const SideMenu = (pr: {
 const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch<any>, setFlowsList: React.Dispatch<any> }) => {
 
   const loadingDefault = {
+    running: false,
     state: false,
     edit: false,
     download: false,
@@ -310,11 +297,16 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
   if (!pr.selectedFlow) return null
 
-  const state = pr.selectedFlow.properties.state;
-  const trigger = pr.selectedFlow.properties.definitionSummary.triggers[0];
-  const actions = pr.selectedFlow.properties.definitionSummary.actions;
-
-  // console.log(actions)
+  const selFlow = {
+    name: pr.selectedFlow.name,
+    displayName: pr.selectedFlow.properties.displayName,
+    state: pr.selectedFlow.properties.state,
+    trigger: pr.selectedFlow.properties.definitionSummary.triggers[0],
+    actions: pr.selectedFlow.properties.definitionSummary.actions,
+    triggerName: pr.selectedFlow.properties?.definition ? Object.keys(pr.selectedFlow.properties.definition.triggers)[0] : null,
+    envName: pr.selectedFlow.properties.environment.name,
+    uriTrigger: pr.selectedFlow.properties?.flowTriggerUri,
+  }
 
   const Status = () => {
     const states = {
@@ -350,13 +342,12 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
   }
 
   const Date = (pr: { label: string, dateIso: string }) => {
-    if (!pr.dateIso) return null
 
-    const dateTime = DateTime.fromISO(pr.dateIso, { locale: 'pt-BR' });
+    if (!pr.dateIso) return null
 
     return (
       <LabelText label={pr.label}>
-        {dateTime.toFormat('dd LLL yy ')} às {dateTime.toFormat(' HH:mm')}
+        {friendlyDate(DateTime.fromISO(pr.dateIso))}
       </LabelText>
     )
   }
@@ -402,15 +393,29 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     runs: `${urlFlowInitial}/runs`,
   }
 
-  type TFlowActions = 'turnOn' | 'turnOff' | 'download' | 'delete' | 'modifyFlow';
+  type TFlowActions = 'turnOn' | 'turnOff' | 'download' | 'delete' | 'modifyFlow' | 'runFlow';
   const handleFlowActions = (action: TFlowActions) => {
 
     const txt = `Óbvio que não tá funcionando kkkk tá muito bonitinho pra ser tão funcional assim.`
     // const txt = `Óbvio que não tá funcionando kkkk tá muito bonitinho pra ser verdade. ${action}`
 
     const handleErrors = (e: any) => {
-      console.log(e);
-      const msg = e.response.data?.error ? JSON.stringify(e.response.data.error) : JSON.stringify(e.response.data?.message)
+      console.error(e);
+
+      const data = e.response.data;
+      const dataError = data?.error;
+      let msg = JSON.stringify(data)
+
+      const errorIsString = typeof dataError === 'string' || dataError instanceof String
+      const errorIsObject = typeof dataError === 'object' && !Array.isArray(dataError) && dataError !== null
+
+      if (errorIsString && data?.message)
+        msg = `(${dataError}) ${data.message}`
+
+      if (errorIsObject && dataError?.code && dataError?.message)
+        msg = `(${dataError.code}) ${dataError.message}`
+
+
       setErrors(prev => ([{ id: uuid(), msg }, ...prev]))
     }
 
@@ -462,9 +467,12 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
       UpdateFlow(pr.token, pr.selectedFlow.properties.environment.name, pr.selectedFlow.name, newFlowProperties)
         .then((resp: any) => {
           const savedFlow = resp?.data;
+          const newFlowDName = savedFlow.properties.displayName
+          const displayNameChanged = selFlow.displayName !== newFlowDName
           modalMustBeOpened(false);
-          setErrors(prev => [{ id: uuid(), msg: 'Fluxo salvo!', intent: 'success' }, ...prev])
-          pr.selectFlow(savedFlow);
+          const msg = `Fluxo "${newFlowDName}" atualizado${displayNameChanged ? ` - Nome anterior "${selFlow.displayName}"` : ''}`;
+          setErrors(prev => [{ id: uuid(), msg, intent: 'success' }, ...prev])
+          pr.selectFlow((prev: any) => prev.properties.flowTriggerUri ? { ...savedFlow, properties: { ...savedFlow.properties, flowTriggerUri: prev.properties.flowTriggerUri } } : savedFlow);
           pr.setFlowsList((prev: any[]) => {
             const selectedFlowIndex = prev.map(f => f.name).indexOf(savedFlow.name);
             let newList = prev;
@@ -474,6 +482,29 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
         })
         .catch(handleErrors)
         .finally(() => setLoading(prev => ({ ...prev, edit: false })))
+
+      return
+    }
+
+    if (action === 'runFlow') {
+      setLoading(prev => ({ ...prev, running: true }))
+
+      console.log(pr.selectedFlow)
+
+      if (!selFlow.triggerName || !selFlow.uriTrigger) {
+        console.log(pr.selectedFlow)
+        setErrors(prev => ([{ id: uuid(), msg: 'Propriedade não encontrada...' }, ...prev]))
+        setLoading(prev => ({ ...prev, running: false }))
+        return;
+      }
+
+
+      RunFlow(pr.token, selFlow.name, selFlow.envName, selFlow.triggerName, selFlow.uriTrigger)
+        .catch(handleErrors)
+        .then(() => {
+          setErrors(prev => ([{ id: uuid(), msg: `Fluxo "${selFlow.displayName}" executado`, intent: 'success' }, ...prev]))
+        })
+        .finally(() => setLoading(prev => ({ ...prev, running: false })))
 
       return
     }
@@ -489,9 +520,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
       <Dialog modalType="alert" open={isEditModalOpen}>
         <DialogTrigger>
           <ToolbarButton onClick={() => modalMustBeOpened(true)}>
-            <HiOutlinePencilAlt className='details-info-links-icon' />
-            Editar fluxo
-          </ToolbarButton>
+            <HiOutlinePencilAlt className='details-info-links-icon' />Editar</ToolbarButton>
         </DialogTrigger>
 
         <DialogSurface className='edit-flow-modal'>
@@ -501,12 +530,14 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
               <div className='edit-flow-modal-body'>
                 <Label htmlFor="txtFlowDisplayName" className='edit-flow-modal-label'>Nome do fluxo:</Label>
                 <Input
+                  disabled={loadins.edit}
                   id="txtFlowDisplayName"
                   onChange={e => setFlowProperties((prev: any) => ({ ...prev, displayName: e.target.value }))}
                   value={editFlowProperties.displayName} />
 
                 <Label htmlFor="txtFlowDescription" className='edit-flow-modal-label'>Descrição do fluxo:</Label>
                 <Textarea
+                  disabled={loadins.edit}
                   id='txtFlowDescription'
                   className={classNames('cards-triggerActions-txtarea', styles.modern_scroll_txa)}
                   resize="vertical"
@@ -516,6 +547,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
                 <Label htmlFor="txtFlowDefinition" className='edit-flow-modal-label'>Definição do fluxo
                   <small className='tip'> (a descrição do fluxo é definido no campo acima)</small>:</Label>
                 <Textarea
+                  disabled={loadins.edit}
                   id='txtFlowDefinition'
                   className={classNames('cards-triggerActions-txtarea txa_code', styles.modern_scroll_txa)}
                   resize="vertical"
@@ -554,8 +586,8 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           <ToolbarButton>
             {
               loadins.delete ?
-                <><SiSpinrilla className={classNames('details-info-links-icon details-info-links-danger', styles.spin)} /> Excluindo fluxo...</>
-                : <><BiTrash className='details-info-links-icon details-info-links-danger' />Excluir fluxo</>
+                <><SiSpinrilla className={classNames('details-info-links-icon details-info-links-danger', styles.spin)} /> Excluindo...</>
+                : <><BiTrash className='details-info-links-icon details-info-links-danger' />Excluir</>
             }
           </ToolbarButton>
 
@@ -586,28 +618,72 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     )
   }
 
+  const RunModal = () => {
+
+    if (!selFlow.uriTrigger) return null
+
+    return (
+      <Dialog modalType="alert">
+        <DialogTrigger>
+          <ToolbarButton>
+            {
+              loadins.running ?
+                <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Executando...</>
+                : <><BsFillPlayFill className='details-info-links-icon' />Executar</>
+            }
+          </ToolbarButton>
+        </DialogTrigger>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Conexões do fluxo</DialogTitle>
+            <DialogContent>
+              Lorem ipsum dolor sit amet consectetur, adipisicing elit.
+              Quasi, inventore eligendi officia ut quo, repellendus, atque impedit expedita ea dolor
+              quibusdam nam exercitationem quia commodi quis nisi reprehenderit eveniet necessitatibus?
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger><Button appearance="secondary">Cancelar</Button></DialogTrigger>
+
+              <Button
+                appearance="primary"
+                disabled={loadins.running || selFlow.state !== 'Started'}
+                onClick={() => handleFlowActions('runFlow')}>
+                {loadins.running ? 'Executando...' : (selFlow.state !== 'Started' ? 'Fluxo desligado' : 'Executar')}
+              </Button>
+
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog >
+    )
+  }
+
   const FlowToolbar = () => {
 
-    const isFlowRunning = state === 'Started';
+    const isFlowStarted = selFlow.state === 'Started';
 
     return (
 
       <Toolbar className={styles.details_page_toolbar}>
 
+        <Tooltip content='Executar fluxo' relationship="label">
+          <RunModal />
+        </Tooltip>
+
         <Tooltip
-          content={isFlowRunning ? 'Desligar fluxo' : 'Ligar fluxo'}
+          content={isFlowStarted ? 'Desligar fluxo' : 'Ligar fluxo'}
           relationship="label"
         >
-          <ToolbarButton onClick={() => handleFlowActions(isFlowRunning ? 'turnOff' : 'turnOn')}>
+          <ToolbarButton onClick={() => handleFlowActions(isFlowStarted ? 'turnOff' : 'turnOn')}>
 
             {
               loadins.state ?
-                <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> {isFlowRunning ? 'Desligando fluxo...' : 'Ligando fluxo...'}</>
+                <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> {isFlowStarted ? 'Desligando...' : 'Ligando...'}</>
                 : (
-                  isFlowRunning ?
-                    <><BsFillStopFill className='details-info-links-icon' /> Desligar fluxo</>
+                  isFlowStarted ?
+                    <><BsFillStopFill className='details-info-links-icon' /> Desligar</>
                     :
-                    <><BsPlayFill className='details-info-links-icon' />Ligar fluxo</>
+                    <><BsPlayFill className='details-info-links-icon' />Ligar</>
                 )
             }
 
@@ -751,13 +827,13 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
         <Card className='cards-triggerActions-trigger'>
           <LabelText label={'Gatilho:'}>
-            <TriggerActionsText trigger={trigger} />
+            <TriggerActionsText trigger={selFlow.trigger} />
           </LabelText>
         </Card>
 
         <Card className='cards-triggerActions-actions'>
           <LabelText label={'Resumo das ações:'}>
-            <TriggerActionsText actions={actions} />
+            <TriggerActionsText actions={selFlow.actions} />
           </LabelText>
         </Card>
 
@@ -765,6 +841,35 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     </div>
   )
 }
+
+const friendlyDate = (date: DateTime) => {
+  const now = DateTime.now().setLocale('pt-BR');
+  const dateTime = date.setLocale('pt-BR');
+  const isDateHasSameMonth = date.hasSame(now, 'month');
+  const friendlyDates = {
+    today: `hoje às ${dateTime.toFormat('HH:mm')}`,
+    yesterday: `ontem às ${dateTime.toFormat('HH:mm')}`,
+    week: `${dateTime.toFormat(`cccc (dd${isDateHasSameMonth ? '' : ' LLL'})`)} às ${dateTime.toFormat('HH:mm')}`,
+    year: `${dateTime.toFormat('dd LLL')} às ${dateTime.toFormat('HH:mm')}`,
+    fullDate: dateTime.toFormat('dd LLL yy HH:mm')
+  }
+
+  if (dateTime.hasSame(now, 'day'))
+    return friendlyDates.today
+
+  if (dateTime.hasSame(now.minus({ days: 1 }), 'day'))
+    return friendlyDates.yesterday
+
+  if (dateTime.hasSame(now, 'week'))
+    return friendlyDates.week
+
+  if (dateTime.hasSame(now, 'year'))
+    return friendlyDates.year
+
+  return friendlyDates.fullDate
+}
+
+
 const LabelText = (pr: { children?: any, label: string | JSX.Element; labelOnly?: boolean }) => {
 
   if (pr.labelOnly) return <div className={styles.labelText}> <span className={styles.labelText_Label}> {pr.label} </span></div>
