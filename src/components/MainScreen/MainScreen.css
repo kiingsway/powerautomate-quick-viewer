@@ -232,3 +232,48 @@ tbody tr {
 .runs-table td {
     vertical-align: middle !important;
 }
+
+.conn-subject {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.conn-subject span {
+    font-weight: 600;
+}
+
+.conn-btn {
+    margin-top: 2px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.conn-btnTitle {
+    cursor: pointer;
+}
+
+.conn-btnTitle-disabled {
+    margin-top: 2px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.conn-btnTitle:hover {
+    text-decoration: underline;
+    background-color: #3D3D3D;
+}
+
+.conn-title {
+    font-size: 12px;
+}

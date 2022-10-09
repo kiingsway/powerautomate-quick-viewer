@@ -3,14 +3,21 @@ import axios from 'axios'
 
 const uriApiFlow = "https://api.flow.microsoft.com/providers/Microsoft.ProcessSimple";
 
+interface IOpt {
+    headers: {
+        Accept: string;
+        Authorization: string | null;
+    }
+}
+let opt: IOpt = {
+    headers: { 'Accept': 'application/json', 'Authorization': null }
+}
+
 export function GetEnvironments(token: string) {
 
     const uri = `${uriApiFlow}/environments`;
-    const opt = {
-        headers: { 'Accept': 'application/json', 'Authorization': token }
-    }
-
-    return axios.get(uri, opt)
+    opt.headers.Authorization = token;
+    return axios.get(uri, opt as any)
 }
 
 export function GetFlows(token: string, environmentName: string, sharedType: 'personal' | 'team') {
@@ -109,4 +116,12 @@ export const ResubmitFlowRun = (token: string, environmentName: string, flowName
     }
 
     return axios.post(uri, {}, opt)
+}
+
+export function GetFlowConnections(token: string, environmentName: string, flowName: string) {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/connections?` +
+        'api-version=2016-11-01';
+    opt.headers.Authorization = token;
+    return axios.get(uri, opt as any)
 }

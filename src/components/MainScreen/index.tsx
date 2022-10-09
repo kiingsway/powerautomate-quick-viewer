@@ -1,8 +1,8 @@
 import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, Input, Label, MenuItem, MenuList, PresenceBadge, Spinner, Textarea, Title3, Tooltip } from '@fluentui/react-components'
 import styles from './MainScreen.module.scss'
-import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
+import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Persona, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
 import { useEffect, useState } from 'react';
-import { CancelFlowRun, DeleteFlow, GetFlow, GetFlowHistories, GetFlowRuns, GetFlows, ResubmitFlowRun, RunFlow, UpdateFlow, UpdateStateFlow } from '../../services/requests';
+import { CancelFlowRun, DeleteFlow, GetFlow, GetFlowConnections, GetFlowHistories, GetFlowRuns, GetFlows, ResubmitFlowRun, RunFlow, UpdateFlow, UpdateStateFlow } from '../../services/requests';
 
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { BiDetail, BiHistory, BiLogOut, BiTrash } from 'react-icons/bi'
@@ -10,6 +10,7 @@ import { BsFillPlayFill, BsPeople, BsToggleOff, BsToggleOn } from 'react-icons/b
 import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
 import { FiShare2 } from 'react-icons/fi';
 import { IoMdClose } from 'react-icons/io';
+import { ImSpinner11 } from 'react-icons/im';
 import { MdReplay } from 'react-icons/md';
 import { SiSpinrilla } from 'react-icons/si';
 import { VscExport } from 'react-icons/vsc';
@@ -23,6 +24,8 @@ import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism.css'; //Example style, you can use another
+
+import 'bootstrap/dist/css/bootstrap.min.css'
 
 
 /*
@@ -70,9 +73,11 @@ export default function MainScreen(props: Props) {
   const [selectedFlow, selectFlow] = useState<any>();
   const [alerts, setAlert] = useState<IAlert[]>();
 
-  const handleAlerts = (alert: IAlert) => {
+  const handleError = (e: any) => {
+    const alert: IAlert = { intent: 'error', message: JSON.stringify(e), id: uuid() };
     setAlert(prev => prev?.length ? ([alert, ...prev]) : [alert])
-
+    setLoadings(prev => ({ ...prev, flows: false }));
+    console.error(e);
   }
 
   useEffect(() => {
@@ -81,21 +86,17 @@ export default function MainScreen(props: Props) {
 
       setLoadings(prev => ({ ...prev, flows: true }))
       GetFlow(props.token, selEnv, selectedFlow.name)
-        .catch(e => { handleAlerts({ intent: 'error', message: JSON.stringify(e), id: uuid() }); console.error(e) })
+        .catch(handleError)
         .then((flowData: any) => {
           const trigg = Object.keys(flowData.data.properties.definition.triggers)[0];
-          GetFlowRuns(props.token, selEnv, selectedFlow.name)
-            .catch(e => { handleAlerts({ intent: 'error', message: JSON.stringify(e), id: uuid() }); console.error(e) })
-            .then((runsData: any) =>
-              GetFlowHistories(props.token, selEnv, selectedFlow.name, trigg)
-                .catch(e => { handleAlerts({ intent: 'error', message: JSON.stringify(e), id: uuid() }); console.error(e) })
-                .then((historiesData: any) => {
-                  const runs = runsData.data;
-                  const histories = historiesData.data;
-                  selectFlow({ ...flowData.data, runs, histories });
-                })
-                .finally(() => setLoadings(prev => ({ ...prev, flows: false })))
-            )
+          GetFlowHistories(props.token, selEnv, selectedFlow.name, trigg)
+            .catch(handleError)
+            .then((historiesData: any) => {
+              const histories = historiesData.data;
+              selectFlow({ ...flowData.data, histories });
+            })
+            .finally(() => setLoadings(prev => ({ ...prev, flows: false })))
+
         })
     }
 
@@ -109,7 +110,7 @@ export default function MainScreen(props: Props) {
       const defaultEnvName = props.environments.filter(env => env.properties.isDefault)[0].name
       GetFlows(props.token, defaultEnvName, sharedType)
         .then(flowsData => setFlowsList(flowsData.data?.value))
-        .catch(e => { alert(e); console.log(e) })
+        .catch(e => { alert(e); console.error(e) })
         .finally(() => setLoadings(prev => ({ ...prev, flows: false })))
     }
   }
@@ -346,7 +347,6 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
   const [flowRuns, setFlowRuns] = useState<any[]>([]);
   useEffect(() => setFlowProperties(pr.selectedFlow.properties), [pr.selectedFlow.properties])
   useEffect(() => {
-    console.log(pr.selectedFlow?.runs?.value)
     setFlowRuns([])
     return Array.isArray(pr.selectedFlow?.runs?.value) ? setFlowRuns(pr.selectedFlow.runs.value) : undefined
 
@@ -451,31 +451,33 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     runs: `${urlFlowInitial}/runs`,
   }
 
+  const handleErrors = (e: any) => {
+    console.error(e);
+
+    const data = e.response.data;
+    const dataError = data?.error;
+    let msg = JSON.stringify(data)
+
+    const errorIsString = typeof dataError === 'string' || dataError instanceof String
+    const errorIsObject = typeof dataError === 'object' && !Array.isArray(dataError) && dataError !== null
+
+    if (errorIsString && data?.message)
+      msg = `(${dataError}) ${data.message}`
+
+    if (errorIsObject && dataError?.code && dataError?.message)
+      msg = `(${dataError.code}) ${dataError.message}`
+
+
+    setErrors(prev => ([{ id: uuid(), msg }, ...prev]))
+  }
+
   type TFlowActions = 'turnOn' | 'turnOff' | 'download' | 'delete' | 'modifyFlow' | 'runFlow';
   const handleFlowActions = (action: TFlowActions) => {
 
     const txt = `Óbvio que não tá funcionando kkkk tá muito bonitinho pra ser tão funcional assim.`
     // const txt = `Óbvio que não tá funcionando kkkk tá muito bonitinho pra ser verdade. ${action}`
 
-    const handleErrors = (e: any) => {
-      console.error(e);
 
-      const data = e.response.data;
-      const dataError = data?.error;
-      let msg = JSON.stringify(data)
-
-      const errorIsString = typeof dataError === 'string' || dataError instanceof String
-      const errorIsObject = typeof dataError === 'object' && !Array.isArray(dataError) && dataError !== null
-
-      if (errorIsString && data?.message)
-        msg = `(${dataError}) ${data.message}`
-
-      if (errorIsObject && dataError?.code && dataError?.message)
-        msg = `(${dataError.code}) ${dataError.message}`
-
-
-      setErrors(prev => ([{ id: uuid(), msg }, ...prev]))
-    }
 
     if (action === 'turnOn' || action === 'turnOff') {
       setLoading(prev => ({ ...prev, state: true }))
@@ -549,15 +551,11 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     if (action === 'runFlow') {
       setLoading(prev => ({ ...prev, running: true }))
 
-      console.log(pr.selectedFlow)
-
       if (!selFlow.triggerName || !selFlow.uriTrigger) {
-        console.log(pr.selectedFlow)
         setErrors(prev => ([{ id: uuid(), msg: 'Propriedade não encontrada...' }, ...prev]))
         setLoading(prev => ({ ...prev, running: false }))
         return;
       }
-
 
       RunFlow(pr.token, selFlow.uriTrigger)
         .catch(handleErrors)
@@ -695,8 +693,6 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
   const RunModal = () => {
 
     if (!selFlow.uriTrigger) return null
-
-    console.log(pr.selectedFlow)
 
     return (
       <Dialog modalType="alert">
@@ -836,7 +832,292 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     )
   }
 
+  const ConnectionsTable = () => {
+
+    const [connections, setConnections] = useState<any[]>();
+    const [loadConn, setLoadConn] = useState(false);
+    const [textNoConn, setText] = useState('')
+
+    const updateConnections = () => {
+      setLoadConn(true)
+      setText('');
+      setConnections([])
+
+      GetFlowConnections(pr.token, selFlow.envName, selFlow.name)
+        .catch(handleErrors)
+        .then(resp => {
+          if (resp?.data?.length)
+            setConnections(resp?.data)
+          else
+            setText('Não há conexões para este fluxo.')
+        })
+        .finally(() => setLoadConn(false))
+    }
+
+    useEffect(() => updateConnections(), [pr.selectedFlow])
+
+    return (
+      <Card style={{ margin: '15px 0' }} >
+        <div className='conn-subject'>
+
+          <span className='fw-bold fs-6'>Conexões</span>
+          <Tooltip relationship='label' content={loadConn ? 'Atualizando lista de conexões...' : 'Atualizar lista de conexões desse fluxo'}>
+            <Button
+              disabled={loadConn}
+              size='small'
+              icon={loadConn ? <Spinner size='tiny' /> : <ImSpinner11 />}
+              onClick={() => updateConnections()}
+            />
+          </Tooltip>
+          <Tooltip relationship='label' content={loadConn ? 'Atualizando lista de conexões...' : 'Atualizar lista de conexões desse fluxo'}>
+            <span
+              className={classNames('d-none conn-btn',
+                { ['conn-btnTitle-disabled']: loadConn },
+                { ['conn-btnTitle']: !loadConn }
+              )}
+              onClick={() => updateConnections()}
+            >
+              {loadConn && <Spinner size='tiny' />}
+              Conexões
+            </span>
+          </Tooltip>
+        </div>
+        <Divider style={{ padding: 0, margin: 0 }} />
+        <div className={classNames('runs-table', styles.modern_scroll)}>
+
+          <div className="row py-1 px-3">
+            {!connections?.length && textNoConn && <span className='pt-1 pb-3 px-3'>{textNoConn}</span>}
+            {connections?.map(conn => {
+
+              const isConnError = conn.properties.statuses.filter((st: any) => st.status === 'Error').length ? true : false
+
+              return (
+                <div className="col-4">
+                  <Persona
+                    key={conn.name}
+                    presence={{ outOfOffice: isConnError, status: isConnError ? 'away' : 'available' }}
+                    name={conn.properties.authenticatedUser.name}
+                    secondaryText={conn.properties.createdBy.displayName}
+                    avatar={{ image: { src: conn.properties.iconUri } }}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
   const FlowRunsTable = () => {
+
+    const [runs, setRuns] = useState<any[]>();
+    const [loadRuns, setLoadRuns] = useState(false);
+    const [textNoRun, setText] = useState('')
+
+    const updateRuns = () => {
+      setLoadRuns(true)
+      setText('');
+      setRuns([])
+
+      GetFlowRuns(pr.token, selFlow.envName, selFlow.name)
+        .catch(handleErrors)
+        .then(resp => {
+          if (resp?.data?.value?.length)
+            setRuns(resp?.data?.value)
+          else
+            setText('Não há execuções neste fluxo.')
+        })
+        .finally(() => setLoadRuns(false))
+    }
+
+    useEffect(() => updateRuns(), [pr.selectedFlow])
+
+
+    const flowRunActions = (action: 'resubmit' | 'cancel', runProps: { name: string, startTime: string }) => {
+      setLoading(prev => ({ ...prev, runActions: { id: runProps.name, state: true } }))
+
+      if (action === 'resubmit') {
+        ResubmitFlowRun(pr.token, selFlow.envName, selFlow.name, runProps.name, selFlow.triggerName as string)
+          .then(() => setErrors(prev => ([{ id: uuid(), msg: `Execução de "${runProps.startTime}" reexecutada`, intent: 'success' }, ...prev])))
+          .catch(e => {
+            setErrors(prev => ([{ id: uuid(), msg: JSON.stringify(e) }, ...prev]))
+            setLoading(prev => ({ ...prev, running: false }))
+          })
+          .finally(() => setLoading(prev => ({ ...prev, runActions: { id: null, state: false } })))
+        return
+      }
+
+      if (action === 'cancel') {
+        CancelFlowRun(pr.token, selFlow.envName, selFlow.name, runProps.name)
+          .then(() => setErrors(prev => ([{ id: uuid(), msg: `Execução de "${runProps.startTime}" cancelada`, intent: 'success' }, ...prev])))
+          .catch(e => {
+            setErrors(prev => ([{ id: uuid(), msg: JSON.stringify(e) }, ...prev]))
+            setLoading(prev => ({ ...prev, running: false }))
+          })
+          .finally(() => setLoading(prev => ({ ...prev, runActions: { id: null, state: false } })))
+
+        return
+      }
+
+    }
+
+    const BtnRunAction = (p: { message: string | JSX.Element, tooltipText: string, icon: JSX.Element, onClick: any, btnText: string, externalLink?: string, disabled?: boolean }) => {
+
+      return (
+        <Dialog>
+          <DialogTrigger>
+
+            <Tooltip content={p.tooltipText} relationship="label">
+              <Button
+                size='small'
+                icon={p.icon}
+                className={classNames('runs-actions-hide', { invisible: p.disabled })}
+                disabled={p.disabled}
+              />
+            </Tooltip>
+
+          </DialogTrigger>
+          <DialogSurface>
+            <DialogBody>
+              <DialogTitle>{p.btnText}</DialogTitle>
+              <DialogContent>
+                <p style={{ lineHeight: 2 }}>{p.message}</p>
+                <Button
+                  appearance='subtle'
+                  size='small'
+                  iconPosition='after'
+                  as='a'
+                  href={p.externalLink}
+                  target='__blank'
+                  icon={<HiOutlineExternalLink />}>
+                  Abrir execução no fluxo
+                </Button>
+              </DialogContent>
+              <DialogActions>
+                <DialogTrigger>
+                  <Button appearance="secondary">Fechar</Button>
+                </DialogTrigger>
+                <Button appearance="primary" disabled={p.disabled} onClick={() => !p.disabled && p.onClick()}>{p.btnText}</Button>
+              </DialogActions>
+            </DialogBody>
+          </DialogSurface>
+        </Dialog>
+      )
+    }
+
+    return (
+      <Card style={{ margin: '15px 0' }} >
+        <div className='conn-subject'>
+
+          <span className='fw-bold fs-6'>Histórico de Execução</span>
+          <Tooltip relationship='label' content={loadRuns ? 'Atualizando lista de conexões...' : 'Atualizar lista de conexões desse fluxo'}>
+            <Button
+              disabled={loadRuns}
+              size='small'
+              icon={loadRuns ? <Spinner size='tiny' /> : <ImSpinner11 />}
+              onClick={() => updateRuns()}
+            />
+          </Tooltip>
+          <Tooltip relationship='label' content={loadRuns ? 'Atualizando lista de conexões...' : 'Atualizar lista de conexões desse fluxo'}>
+            <span
+              className={classNames('d-none conn-btn',
+                { ['conn-btnTitle-disabled']: loadRuns },
+                { ['conn-btnTitle']: !loadRuns }
+              )}
+              onClick={() => updateRuns()}
+            >
+              {loadRuns && <Spinner size='tiny' />}
+              Conexões
+            </span>
+          </Tooltip>
+        </div>
+
+        <div className={classNames('runs-table', styles.modern_scroll)}>
+
+          <table className='runs-table'>
+            <thead>
+
+              {[
+                { id: 'startTime', title: 'Início' },
+                { id: 'duration', title: 'Duração' },
+                { id: 'status', title: 'Status' },
+                { id: 'error', title: 'Erro' }
+              ].map(col => <th key={col.id} className={`runs-table-${col.id}`}>{col.title}</th>)}
+
+            </thead>
+            <tbody className={styles.modern_scroll}>
+              {runs?.map((run: any) => {
+
+                const startTime = DateTime.fromISO(run.properties.startTime)
+                const endTime = run.properties.endTime && DateTime.fromISO(run.properties.endTime)
+                const status: TRunStatus = run.properties.status;
+                const errorCode = run.properties?.error?.code as string | undefined;
+                const errorMsg = run.properties?.error?.message as string | undefined;
+                const errorText = errorCode && errorMsg ? `(${run.properties.error.code}) ${run.properties.error.message}` : JSON.stringify(run.properties?.error);
+                const statusToPresence: Record<TRunStatus, 'available' | 'unknown' | 'away' | 'offline'> = {
+                  Succeeded: 'available',
+                  Running: 'away',
+                  Cancelled: 'offline',
+                  Failed: 'unknown'
+                }
+
+                return (
+                  <tr key={run.name}>
+
+                    <td className='runs-table-startTime'>
+                      <div className='runs-cell-startTime'>
+                        <a target='__blank' href={`${urlFlow.runs}/${run.name}`} className='runs-link'>
+                          {friendlyDate(startTime)}
+                        </a>
+
+                        <div className='runs-cell-actions'>
+
+                          <BtnRunAction
+                            message={`Tem certeza que deseja cancelar a execução de ${friendlyDate(startTime)}?`}
+                            icon={loadings.runActions.id === run.name ? <Spinner size='tiny' /> : <IoMdClose />}
+                            disabled={loadings.runActions.id === run.name || status !== 'Running'}
+                            tooltipText='Cancelar'
+                            btnText='Cancelar'
+                            externalLink={`${urlFlow.runs}/${run.name}`}
+                            onClick={() => flowRunActions('cancel', { name: run.name, startTime: friendlyDate(startTime) })}
+                          />
+
+                          <BtnRunAction
+                            message={`Tem certeza que deseja reexecutar a execução de ${friendlyDate(startTime)}?`}
+                            icon={loadings.runActions.id === run.name ? <Spinner size='tiny' /> : <MdReplay />}
+                            disabled={loadings.runActions.id === run.name}
+                            tooltipText='Reexecutar'
+                            externalLink={`${urlFlow.runs}/${run.name}`}
+                            btnText='Reexecutar'
+                            onClick={() => flowRunActions('resubmit', { name: run.name, startTime: friendlyDate(startTime) })}
+                          />
+
+                        </div>
+
+                      </div>
+                    </td>
+                    <td className='runs-table-duration'>{endTime ? endTime.diff(startTime).toFormat('hh:mm:ss') : DateTime.now().diff(startTime).toFormat('hh:mm:ss')}</td>
+                    <td className='runs-table-status'>
+                      <div className='runs-cell-status'>
+                        <PresenceBadge size='extra-small' status={statusToPresence[status]} />
+                        {status}
+                      </div>
+                    </td>
+                    <td className='runs-cell-error runs-table-error'>{errorText}</td>
+
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+        </div>
+      </Card>
+    )
+  }
+
+  const FlowRunsTable1 = () => {
 
     const flowRunActions = (action: 'resubmit' | 'cancel', runProps: { name: string, startTime: string }) => {
       setLoading(prev => ({ ...prev, runActions: { id: runProps.name, state: true } }))
@@ -922,7 +1203,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           ].map(col => <th key={col.id} className={`runs-table-${col.id}`}>{col.title}</th>)}
 
         </thead>
-        <tbody>
+        <tbody className={styles.modern_scroll}>
           {flowRuns?.map((run: any) => {
 
             const startTime = DateTime.fromISO(run.properties.startTime)
@@ -937,8 +1218,6 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
               Cancelled: 'offline',
               Failed: 'unknown'
             }
-            const cancelFlowRunProps = {}
-            const resubmitFlowRunProps = {}
 
             return (
               <tr key={run.name}>
@@ -1080,14 +1359,16 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
       </Card>
 
-      <Card style={{ margin: '15px 0' }} >
+      {/* CONEXÕES */}
+      <ConnectionsTable />
+
+      {/* HISTÓRICO DE EXECUÇÃO */}
+      <FlowRunsTable />
+      {/* <Card style={{ margin: '15px 0' }} >
         <LabelText label='Histórico de execução' labelOnly />
         <div className={classNames('runs-table', styles.modern_scroll)}>
-          <FlowRunsTable />
-
         </div>
-
-      </Card>
+      </Card> */}
 
       <div className="cards-triggerActions">
 
