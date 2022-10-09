@@ -35,8 +35,8 @@ TAREFAS
 - 🆗 Execuções do fluxo - pegar da api
 - 🆗 Ações das execuções do fluxo
 - ❌ Toolbar: Compartilhar fluxo, abrir modal para inserção do email - requisições precisam ser feitas para o Graph
-- Card Conexões do fluxo
-- Card Proprietários e Membros (com quem está compartilhado)
+- 🆗 Card Conexões do fluxo
+- ❌ Card Proprietários e Membros (com quem está compartilhado) - Bearer Token diferente
 - Card Ações e Gatilho: Fazer um mini flow, talvez só com as ações raizes ou mesmo usar um Accordion, o que for mais simples.
 
 - Nova Seção: Table, ficará na posição do Main. Essa tela aparece sem fluxo selecioando, a Main atual substituirá quando fluxo for selecionado.
@@ -89,6 +89,7 @@ export default function MainScreen(props: Props) {
         .catch(handleError)
         .then((flowData: any) => {
           const trigg = Object.keys(flowData.data.properties.definition.triggers)[0];
+          console.log(flowData?.data)
           GetFlowHistories(props.token, selEnv, selectedFlow.name, trigg)
             .catch(handleError)
             .then((historiesData: any) => {
