@@ -3,7 +3,7 @@ import styles from './App.module.scss';
 import { Card } from '@fluentui/react-components/unstable';
 import MainScreen from './components/MainScreen';
 import { GetEnvironments } from './services/requests';
-import { Button, Input, Label, Textarea, Tooltip } from '@fluentui/react-components';
+import { Button, Input, Label, Spinner, Textarea, Tooltip } from '@fluentui/react-components';
 import { BiClipboard } from 'react-icons/bi'
 import { SiSpinrilla } from 'react-icons/si'
 
@@ -121,7 +121,9 @@ const LoginPage = (pr: { handleLogin: any, token: string; setToken: any; error: 
         className={styles.login_button}
       >
         {pr.loadingLogin ?
-          <SiSpinrilla className={styles.spin} />
+          <>
+            <Spinner size='tiny' />
+          </>
           :
           'Login'}
       </Button>

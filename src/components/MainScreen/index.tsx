@@ -1,23 +1,23 @@
-import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, Input, Label, MenuItem, MenuList, PresenceBadge, PresenceBadgeStatus, Textarea, Title3, Tooltip } from '@fluentui/react-components'
+import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, Input, Label, MenuItem, MenuList, PresenceBadge, Spinner, Textarea, Title3, Tooltip } from '@fluentui/react-components'
 import styles from './MainScreen.module.scss'
-import { BiDetail, BiHistory, BiLogOut, BiTrash } from 'react-icons/bi'
-import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, TableBody, TableCell, TableCellActions, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
+import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
 import { useEffect, useState } from 'react';
 import { CancelFlowRun, DeleteFlow, GetFlow, GetFlowHistories, GetFlowRuns, GetFlows, ResubmitFlowRun, RunFlow, UpdateFlow, UpdateStateFlow } from '../../services/requests';
+
 import { AiFillCloseCircle } from 'react-icons/ai';
-import { BiCloudDownload } from 'react-icons/bi';
-import { IoMdClose } from 'react-icons/io';
-import { GrClose } from 'react-icons/gr';
+import { BiDetail, BiHistory, BiLogOut, BiTrash } from 'react-icons/bi'
+import { BsFillPlayFill, BsPeople, BsToggleOff, BsToggleOn } from 'react-icons/bs';
 import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
-import { BsFillPlayFill, BsFillStopFill, BsPeople, BsPlayFill, BsToggleOff, BsToggleOn } from 'react-icons/bs';
+import { FiShare2 } from 'react-icons/fi';
+import { IoMdClose } from 'react-icons/io';
 import { MdReplay } from 'react-icons/md';
 import { SiSpinrilla } from 'react-icons/si';
 import { VscExport } from 'react-icons/vsc';
+
 import classNames from 'classnames'
 import { DateTime } from 'luxon'
 import './MainScreen.css'
 import uuid from 'react-uuid';
-import { Table } from '@fluentui/react-components/unstable';
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
@@ -29,14 +29,13 @@ import 'prismjs/themes/prism.css'; //Example style, you can use another
 TAREFAS
 - ações da toolbar 🆗
 - Toolbar: Botão para executar fluxos de botão 🆗
-- Toolbar: Compartilhar fluxo, abrir modal para inserção do email
+- Execuções do fluxo - pegar da api 🆗
+- Ações das execuções do fluxo 🆗
+- Toolbar: Compartilhar fluxo, abrir modal para inserção do email ❌ - requisições precisam ser feitas para o Graph
 - Toolbar: Download do fluxo
 - Filtro nos fluxos igual era no antigo
 - Main: Colocar card para conexões
 - Gatilho e Ações mais bonitinho - pegar da api
-- Execuções do fluxo - pegar da api
-- Ações das execuções do fluxo
-- Tentar compartilhar com email específico? - se tiver que fazer requuisições extras, deixa quieto
 - Obter conexões e proprietários de cada fluxo
 */
 
@@ -139,7 +138,7 @@ export default function MainScreen(props: Props) {
                   <AiFillCloseCircle style={{ marginLeft: 5 }} />
                 </span>}
               >
-                Error text
+                {alert.message}
               </Alert>
             ))
           }
@@ -230,7 +229,7 @@ const SideMenu = (pr: {
               disabled={pr.loadings.flows}
             >
               {pr.loadings.flows ?
-                <SiSpinrilla className={styles.spin} />
+                <Spinner size='tiny' />
                 :
                 'Meus'}
             </Button>
@@ -241,7 +240,7 @@ const SideMenu = (pr: {
                 disabled={pr.loadings.flows}
               >
                 {pr.loadings.flows ?
-                  <SiSpinrilla className={styles.spin} />
+                  <Spinner size='tiny' />
                   :
                   'Compartilhados'}
               </Button>
@@ -301,12 +300,14 @@ const SideMenu = (pr: {
 }
 
 type TRunStatus = 'Failed' | 'Succeeded' | 'Running' | 'Cancelled';
+
 interface ILoading {
   running: boolean
   state: boolean
   edit: boolean
   download: boolean
   delete: boolean
+  share: boolean
   runActions: {
     state: boolean
     id: string | null
@@ -322,6 +323,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     edit: false,
     download: false,
     delete: false,
+    share: false,
     runActions: { state: false, id: null },
   }
 
@@ -607,7 +609,9 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           </DialogContent>
           <DialogActions>
             <DialogTrigger>
-              <Button appearance="outline" onClick={() => modalMustBeOpened(false)}>Cancelar</Button>
+              <Button appearance="outline" onClick={() => modalMustBeOpened(false)}>
+                {loadings.edit ? 'Fechar' : 'Cancelar'}
+              </Button>
             </DialogTrigger>
             <Button
               disabled={loadings.edit}
@@ -616,7 +620,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
             >
               {
                 loadings.edit ?
-                  <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Salvando...</>
+                  <><SiSpinrilla className='details-info-links-icon' /> Salvando...</>
                   : 'Salvar'
               }
 
@@ -632,10 +636,10 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     return (
       <Dialog modalType="alert">
         <DialogTrigger>
-          <ToolbarButton>
+          <ToolbarButton disabled={loadings.delete}>
             {
               loadings.delete ?
-                <><SiSpinrilla className={classNames('details-info-links-icon details-info-links-danger', styles.spin)} /> Excluindo...</>
+                <><Spinner appearance="primary" size='tiny' className='details-info-links-icon' />Excluindo...</>
                 : <><BiTrash className='details-info-links-icon details-info-links-danger' />Excluir</>
             }
           </ToolbarButton>
@@ -644,22 +648,37 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
         <DialogSurface>
           <DialogBody>
             <DialogTitle>Tem certeza que deseja excluir esse fluxo?</DialogTitle>
-            <DialogContent>
+            <DialogContent >
               <p>Você terá 28 dias para restaurar o fluxo.</p>
-              <p>Veja também:</p>
-              <Button
-                appearance='subtle'
-                icon={<HiOutlineExternalLink />}
-                as='a'
-                href='https://learn.microsoft.com/en-us/power-automate/how-tos-restore-deleted-flow'
-                target='__blank'>
-                Como restaurar fluxo excluído
-
-              </Button>
+              <div style={{ textAlign: 'end' }}>
+                <Button
+                  appearance='subtle'
+                  icon={<HiOutlineExternalLink />}
+                  as='a'
+                  href='https://learn.microsoft.com/en-us/power-automate/how-tos-restore-deleted-flow'
+                  target='__blank'>Como restaurar fluxo excluído</Button>
+              </div>
             </DialogContent>
-            <DialogActions>
-              <Button appearance="primary" onClick={() => handleFlowActions('delete')}>Excluir</Button>
-              <DialogTrigger><Button appearance="secondary">Cancelar</Button></DialogTrigger>
+
+            <DialogActions position="start">
+
+              <Button
+                appearance="primary"
+                disabled={loadings.delete}
+                onClick={() => handleFlowActions('delete')}>
+                {
+                  loadings.delete ?
+                    <Spinner appearance="primary" label="Excluindo..." size='tiny' />
+                    : 'Excluir'
+                }
+              </Button>
+
+            </DialogActions>
+
+            <DialogActions position='end'>
+              <DialogTrigger>
+                <Button appearance="secondary">Cancelar</Button>
+              </DialogTrigger>
             </DialogActions>
           </DialogBody>
         </DialogSurface>
@@ -728,6 +747,38 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     )
   }
 
+  const ShareFlowModal = () => {
+
+    return (
+      <Dialog modalType="alert">
+        <DialogTrigger>
+          <ToolbarButton>
+            {
+              loadings.running ?
+                <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Compartilhando...</>
+                : <><FiShare2 className={classNames('details-info-links-icon')} />Compartilhar</>
+            }
+          </ToolbarButton>
+        </DialogTrigger>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Compartilhar fluxo</DialogTitle>
+            <DialogContent>
+              This dialog cannot be dismissed by clicking on the backdrop nor by pressing Escape. Close button should be
+              pressed to dismiss this Alert
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger>
+                <Button appearance="secondary">Close</Button>
+              </DialogTrigger>
+              <Button appearance="primary">Do Something</Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+    )
+  }
+
   const FlowToolbar = () => {
 
     const isFlowStarted = selFlow.state === 'Started';
@@ -766,6 +817,10 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           <EditModal />
         </Tooltip>
 
+        {/* <Tooltip content='Compartilhar o fluxo com um e-mail' relationship="label">
+          <ShareFlowModal />
+        </Tooltip> */}
+
         <Tooltip content='Exclua o fluxo' relationship="label">
           <DeleteButton />
         </Tooltip>
@@ -782,20 +837,18 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
       if (action === 'resubmit') {
         ResubmitFlowRun(pr.token, selFlow.envName, selFlow.name, runProps.name, selFlow.triggerName as string)
-          .then(resp => setErrors(prev => ([{ id: uuid(), msg: `Execução de "${runProps.startTime}" reexecutada`, intent: 'success' }, ...prev])))
+          .then(() => setErrors(prev => ([{ id: uuid(), msg: `Execução de "${runProps.startTime}" reexecutada`, intent: 'success' }, ...prev])))
           .catch(e => {
             setErrors(prev => ([{ id: uuid(), msg: JSON.stringify(e) }, ...prev]))
             setLoading(prev => ({ ...prev, running: false }))
           })
           .finally(() => setLoading(prev => ({ ...prev, runActions: { id: null, state: false } })))
-
-        // setLoading(prev => ({ ...prev, runActions: { id: null, state: false } }))
         return
       }
 
       if (action === 'cancel') {
         CancelFlowRun(pr.token, selFlow.envName, selFlow.name, runProps.name)
-          .then(resp => setErrors(prev => ([{ id: uuid(), msg: `Execução de "${runProps.startTime}" cancelada`, intent: 'success' }, ...prev])))
+          .then(() => setErrors(prev => ([{ id: uuid(), msg: `Execução de "${runProps.startTime}" cancelada`, intent: 'success' }, ...prev])))
           .catch(e => {
             setErrors(prev => ([{ id: uuid(), msg: JSON.stringify(e) }, ...prev]))
             setLoading(prev => ({ ...prev, running: false }))
@@ -805,6 +858,50 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
         return
       }
 
+    }
+
+    const BtnRunAction = (p: { message: string | JSX.Element, tooltipText: string, icon: JSX.Element, onClick: any, btnText: string, externalLink?: string, disabled?: boolean }) => {
+
+      return (
+        <Dialog>
+          <DialogTrigger>
+
+            <Tooltip content={p.tooltipText} relationship="label">
+              <Button
+                size='small'
+                icon={p.icon}
+                className={classNames('runs-actions-hide', { invisible: p.disabled })}
+                disabled={p.disabled}
+              />
+            </Tooltip>
+
+          </DialogTrigger>
+          <DialogSurface>
+            <DialogBody>
+              <DialogTitle>{p.btnText}</DialogTitle>
+              <DialogContent>
+                <p style={{ lineHeight: 2 }}>{p.message}</p>
+                <Button
+                  appearance='subtle'
+                  size='small'
+                  iconPosition='after'
+                  as='a'
+                  href={p.externalLink}
+                  target='__blank'
+                  icon={<HiOutlineExternalLink />}>
+                  Abrir execução no fluxo
+                </Button>
+              </DialogContent>
+              <DialogActions>
+                <DialogTrigger>
+                  <Button appearance="secondary">Fechar</Button>
+                </DialogTrigger>
+                <Button appearance="primary" disabled={p.disabled} onClick={() => !p.disabled && p.onClick()}>{p.btnText}</Button>
+              </DialogActions>
+            </DialogBody>
+          </DialogSurface>
+        </Dialog>
+      )
     }
 
     return (
@@ -846,34 +943,29 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
                       {friendlyDate(startTime)}
                     </a>
 
-                    {
-                      loadings.runActions.id === run.name ?
-                        <Button size='small' disabled icon={<SiSpinrilla className={styles.spin} />} />
-                        : (
-                          !loadings.runActions.state &&
-                          <div className='runs-cell-actions'>
-                            {
-                              status === 'Running' &&
-                              <Tooltip content="Cancelar execução" relationship="label">
-                                <Button
-                                  size='small'
-                                  icon={<IoMdClose />}
-                                  className='runs-actions-hide'
-                                  onClick={() => flowRunActions('cancel', { name: run.name, startTime: friendlyDate(startTime) })} />
-                              </Tooltip>
-                            }
+                    <div className='runs-cell-actions'>
 
-                            <Tooltip content="Reexecutar" relationship="label">
-                              <Button
-                                size='small'
-                                icon={<MdReplay />}
-                                className='runs-actions-hide'
-                                onClick={() => flowRunActions('resubmit', { name: run.name, startTime: friendlyDate(startTime) })} />
-                            </Tooltip>
+                      <BtnRunAction
+                        message={`Tem certeza que deseja cancelar a execução de ${friendlyDate(startTime)}?`}
+                        icon={loadings.runActions.id === run.name ? <Spinner size='tiny' /> : <IoMdClose />}
+                        disabled={loadings.runActions.id === run.name || status !== 'Running'}
+                        tooltipText='Cancelar'
+                        btnText='Cancelar'
+                        externalLink={`${urlFlow.runs}/${run.name}`}
+                        onClick={() => flowRunActions('cancel', { name: run.name, startTime: friendlyDate(startTime) })}
+                      />
 
-                          </div>
-                        )
-                    }
+                      <BtnRunAction
+                        message={`Tem certeza que deseja reexecutar a execução de ${friendlyDate(startTime)}?`}
+                        icon={loadings.runActions.id === run.name ? <Spinner size='tiny' /> : <MdReplay />}
+                        disabled={loadings.runActions.id === run.name}
+                        tooltipText='Reexecutar'
+                        externalLink={`${urlFlow.runs}/${run.name}`}
+                        btnText='Reexecutar'
+                        onClick={() => flowRunActions('resubmit', { name: run.name, startTime: friendlyDate(startTime) })}
+                      />
+
+                    </div>
 
                   </div>
                 </td>

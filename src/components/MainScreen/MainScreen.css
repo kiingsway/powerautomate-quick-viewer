@@ -186,6 +186,14 @@ tbody tr {
     table-layout: fixed;
 }
 
+.invisible {
+    visibility: hidden !important;
+}
+
+.visible {
+    visibility: initial;
+}
+
 .runs-table-startTime .runs-actions-hide {
     visibility: hidden;
 }
