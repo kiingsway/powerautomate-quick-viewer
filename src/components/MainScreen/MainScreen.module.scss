@@ -59,6 +59,9 @@
 
 .details_page {
     width: 75%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .environment_list {

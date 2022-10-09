@@ -81,10 +81,29 @@ export const UpdateFlow = (token: string, environmentName: string, flowName: str
     return axios.patch(uri, newDefinition, opt)
 }
 
-export const RunFlow = (token: string, environmentName: string, flowName: string, trigger: string, flowTriggerUri: string) => {
+export const RunFlow = (token: string, flowTriggerUri: string) => {
 
     const uri = flowTriggerUri;
-    const uri1 = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/triggers/${trigger}/run?api-version=2016-11-01`;
+    const opt = {
+        headers: { 'accept': 'application/json', 'authorization': token }
+    }
+
+    return axios.post(uri, {}, opt)
+}
+
+export const CancelFlowRun = (token: string, environmentName: string, flowName: string, runName: string) => {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/runs/${runName}/cancel?api-version=2016-11-01`;
+    const opt = {
+        headers: { 'accept': 'application/json', 'authorization': token }
+    }
+
+    return axios.post(uri, {}, opt)
+}
+
+export const ResubmitFlowRun = (token: string, environmentName: string, flowName: string, runName: string, trigger: string) => {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/triggers/${trigger}/histories/${runName}/resubmit?api-version=2016-11-01`;
     const opt = {
         headers: { 'accept': 'application/json', 'authorization': token }
     }

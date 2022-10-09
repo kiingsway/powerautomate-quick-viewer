@@ -1,13 +1,16 @@
 import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, Input, Label, MenuItem, MenuList, PresenceBadge, PresenceBadgeStatus, Textarea, Title3, Tooltip } from '@fluentui/react-components'
 import styles from './MainScreen.module.scss'
 import { BiDetail, BiHistory, BiLogOut, BiTrash } from 'react-icons/bi'
-import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, TableBody, TableCell, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
+import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, TableBody, TableCell, TableCellActions, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
 import { useEffect, useState } from 'react';
-import { DeleteFlow, GetFlow, GetFlowHistories, GetFlowRuns, GetFlows, RunFlow, UpdateFlow, UpdateStateFlow } from '../../services/requests';
+import { CancelFlowRun, DeleteFlow, GetFlow, GetFlowHistories, GetFlowRuns, GetFlows, ResubmitFlowRun, RunFlow, UpdateFlow, UpdateStateFlow } from '../../services/requests';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { BiCloudDownload } from 'react-icons/bi';
+import { IoMdClose } from 'react-icons/io';
+import { GrClose } from 'react-icons/gr';
 import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
 import { BsFillPlayFill, BsFillStopFill, BsPeople, BsPlayFill, BsToggleOff, BsToggleOn } from 'react-icons/bs';
+import { MdReplay } from 'react-icons/md';
 import { SiSpinrilla } from 'react-icons/si';
 import { VscExport } from 'react-icons/vsc';
 import classNames from 'classnames'
@@ -29,6 +32,7 @@ TAREFAS
 - Toolbar: Compartilhar fluxo, abrir modal para inserção do email
 - Toolbar: Download do fluxo
 - Filtro nos fluxos igual era no antigo
+- Main: Colocar card para conexões
 - Gatilho e Ações mais bonitinho - pegar da api
 - Execuções do fluxo - pegar da api
 - Ações das execuções do fluxo
@@ -48,13 +52,23 @@ interface ILoadings {
   flows: boolean
 }
 
+interface IAlert {
+  id: string;
+  message: string;
+  intent: 'error' | 'warning' | 'info' | 'success'
+}
+
 export default function MainScreen(props: Props) {
 
   const [flowsList, setFlowsList] = useState<any[]>();
   const [loadings, setLoadings] = useState<ILoadings>({ flows: false });
   const [selectedFlow, selectFlow] = useState<any>();
+  const [alerts, setAlert] = useState<IAlert[]>();
 
-  // useEffect(() => console.log(selectedFlow), [selectedFlow])
+  const handleAlerts = (alert: IAlert) => {
+    setAlert(prev => prev?.length ? ([alert, ...prev]) : [alert])
+
+  }
 
   useEffect(() => {
     if (selectedFlow?.name && !selectedFlow?.properties?.definition) {
@@ -62,21 +76,22 @@ export default function MainScreen(props: Props) {
 
       setLoadings(prev => ({ ...prev, flows: true }))
       GetFlow(props.token, selEnv, selectedFlow.name)
+        .catch(e => { handleAlerts({ intent: 'error', message: JSON.stringify(e), id: uuid() }); console.error(e) })
         .then((flowData: any) => {
           const trigg = Object.keys(flowData.data.properties.definition.triggers)[0];
           GetFlowRuns(props.token, selEnv, selectedFlow.name)
+            .catch(e => { handleAlerts({ intent: 'error', message: JSON.stringify(e), id: uuid() }); console.error(e) })
             .then((runsData: any) =>
               GetFlowHistories(props.token, selEnv, selectedFlow.name, trigg)
+                .catch(e => { handleAlerts({ intent: 'error', message: JSON.stringify(e), id: uuid() }); console.error(e) })
                 .then((historiesData: any) => {
                   const runs = runsData.data;
                   const histories = historiesData.data;
                   selectFlow({ ...flowData.data, runs, histories });
                 })
+                .finally(() => setLoadings(prev => ({ ...prev, flows: false })))
             )
-        }
-        )
-        .catch(e => { alert(e); console.log(e) })
-        .finally(() => setLoadings(prev => ({ ...prev, flows: false })))
+        })
     }
 
   }, [selectedFlow])
@@ -113,7 +128,21 @@ export default function MainScreen(props: Props) {
           />
 
         </div>
-        <div className={styles.details_page}>
+        <div className={classNames(styles.details_page, styles.modern_scroll)}>
+          {
+            alerts?.length && alerts.map(alert => (
+              <Alert
+                intent={alert.intent}
+                action={<span
+                  onClick={() => setAlert(prev => prev?.filter(e => e.id !== alert.id))}>
+                  <span>Fechar</span>
+                  <AiFillCloseCircle style={{ marginLeft: 5 }} />
+                </span>}
+              >
+                Error text
+              </Alert>
+            ))
+          }
           {
             selectedFlow ?
               <Main
@@ -271,14 +300,29 @@ const SideMenu = (pr: {
   )
 }
 
+type TRunStatus = 'Failed' | 'Succeeded' | 'Running' | 'Cancelled';
+interface ILoading {
+  running: boolean
+  state: boolean
+  edit: boolean
+  download: boolean
+  delete: boolean
+  runActions: {
+    state: boolean
+    id: string | null
+  }
+}
+
+
 const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch<any>, setFlowsList: React.Dispatch<any> }) => {
 
-  const loadingDefault = {
+  const loadingDefault: ILoading = {
     running: false,
     state: false,
     edit: false,
     download: false,
-    delete: false
+    delete: false,
+    runActions: { state: false, id: null },
   }
 
   interface IError {
@@ -287,13 +331,18 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     intent?: "info" | "success" | "error" | "warning";
   }
 
-  const [loadins, setLoading] = useState(loadingDefault);
+  const [loadings, setLoading] = useState(loadingDefault);
   const [errors, setErrors] = useState<IError[]>([]);
   const [editFlowProperties, setFlowProperties] = useState<any>(pr.selectedFlow.properties);
   const [isEditModalOpen, modalMustBeOpened] = useState(false);
   const [flowRuns, setFlowRuns] = useState<any[]>([]);
   useEffect(() => setFlowProperties(pr.selectedFlow.properties), [pr.selectedFlow.properties])
-  useEffect(() => Array.isArray(pr.selectedFlow?.runs) ? setFlowRuns(pr.selectedFlow.runs) : undefined, [pr.selectedFlow])
+  useEffect(() => {
+    console.log(pr.selectedFlow?.runs?.value)
+    setFlowRuns([])
+    return Array.isArray(pr.selectedFlow?.runs?.value) ? setFlowRuns(pr.selectedFlow.runs.value) : undefined
+
+  }, [pr.selectedFlow])
 
   if (!pr.selectedFlow) return null
 
@@ -384,7 +433,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     )
   }
 
-  const urlFlowInitial = `https://make.powerautomate.com/environments/${pr.selectedFlow.properties.environment.name}/flows/${pr.selectedFlow.name}`
+  const urlFlowInitial = `https://make.powerautomate.com/environments/${selFlow.envName}/flows/${selFlow.name}`
 
   const urlFlow = {
     edit: `${urlFlowInitial}`,
@@ -467,17 +516,19 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
       UpdateFlow(pr.token, pr.selectedFlow.properties.environment.name, pr.selectedFlow.name, newFlowProperties)
         .then((resp: any) => {
-          const savedFlow = resp?.data;
-          const newFlowDName = savedFlow.properties.displayName
-          const displayNameChanged = selFlow.displayName !== newFlowDName
+
           modalMustBeOpened(false);
-          const msg = `Fluxo "${newFlowDName}" atualizado${displayNameChanged ? ` - Nome anterior "${selFlow.displayName}"` : ''}`;
+          const updatedFlow = { ...pr.selectedFlow, ...resp?.data }
+          const newFlowDName = updatedFlow.properties.displayName
+          const hasDisplayNameChanged = selFlow.displayName !== newFlowDName
+          const msg = `Fluxo "${newFlowDName}" atualizado${hasDisplayNameChanged ? ` - Nome anterior "${selFlow.displayName}"` : ''}`;
+
           setErrors(prev => [{ id: uuid(), msg, intent: 'success' }, ...prev])
-          pr.selectFlow((prev: any) => prev.properties.flowTriggerUri ? { ...savedFlow, properties: { ...savedFlow.properties, flowTriggerUri: prev.properties.flowTriggerUri } } : savedFlow);
+          pr.selectFlow(updatedFlow);
           pr.setFlowsList((prev: any[]) => {
-            const selectedFlowIndex = prev.map(f => f.name).indexOf(savedFlow.name);
+            const selectedFlowIndex = prev.map(f => f.name).indexOf(updatedFlow.name);
             let newList = prev;
-            newList[selectedFlowIndex] = savedFlow;
+            newList[selectedFlowIndex] = updatedFlow;
             return newList
           })
         })
@@ -500,7 +551,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
       }
 
 
-      RunFlow(pr.token, selFlow.name, selFlow.envName, selFlow.triggerName, selFlow.uriTrigger)
+      RunFlow(pr.token, selFlow.uriTrigger)
         .catch(handleErrors)
         .then(() => {
           setErrors(prev => ([{ id: uuid(), msg: `Fluxo "${selFlow.displayName}" executado`, intent: 'success' }, ...prev]))
@@ -514,70 +565,67 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
   }
 
-  const EditModal = () => {
+  const EditModal = () => (
 
-    return (
+    <Dialog modalType="alert" open={isEditModalOpen}>
+      <DialogTrigger>
+        <ToolbarButton onClick={() => modalMustBeOpened(true)}>
+          <HiOutlinePencilAlt className='details-info-links-icon' />Editar</ToolbarButton>
+      </DialogTrigger>
 
-      <Dialog modalType="alert" open={isEditModalOpen}>
-        <DialogTrigger>
-          <ToolbarButton onClick={() => modalMustBeOpened(true)}>
-            <HiOutlinePencilAlt className='details-info-links-icon' />Editar</ToolbarButton>
-        </DialogTrigger>
+      <DialogSurface className='edit-flow-modal'>
+        <DialogBody>
+          <DialogTitle>Edição do fluxo</DialogTitle>
+          <DialogContent>
+            <div className='edit-flow-modal-body'>
+              <Label htmlFor="txtFlowDisplayName" className='edit-flow-modal-label'>Nome do fluxo:</Label>
+              <Input
+                disabled={loadings.edit}
+                id="txtFlowDisplayName"
+                onChange={e => setFlowProperties((prev: any) => ({ ...prev, displayName: e.target.value }))}
+                value={editFlowProperties.displayName} />
 
-        <DialogSurface className='edit-flow-modal'>
-          <DialogBody>
-            <DialogTitle>Edição do fluxo</DialogTitle>
-            <DialogContent>
-              <div className='edit-flow-modal-body'>
-                <Label htmlFor="txtFlowDisplayName" className='edit-flow-modal-label'>Nome do fluxo:</Label>
-                <Input
-                  disabled={loadins.edit}
-                  id="txtFlowDisplayName"
-                  onChange={e => setFlowProperties((prev: any) => ({ ...prev, displayName: e.target.value }))}
-                  value={editFlowProperties.displayName} />
+              <Label htmlFor="txtFlowDescription" className='edit-flow-modal-label'>Descrição do fluxo:</Label>
+              <Textarea
+                disabled={loadings.edit}
+                id='txtFlowDescription'
+                className={classNames('cards-triggerActions-txtarea', styles.modern_scroll_txa)}
+                resize="vertical"
+                onChange={e => setFlowProperties((prev: any) => ({ ...prev, definition: { ...prev.definition, description: e.target.value } }))}
+                value={editFlowProperties.definition?.description} />
 
-                <Label htmlFor="txtFlowDescription" className='edit-flow-modal-label'>Descrição do fluxo:</Label>
-                <Textarea
-                  disabled={loadins.edit}
-                  id='txtFlowDescription'
-                  className={classNames('cards-triggerActions-txtarea', styles.modern_scroll_txa)}
-                  resize="vertical"
-                  onChange={e => setFlowProperties((prev: any) => ({ ...prev, definition: { ...prev.definition, description: e.target.value } }))}
-                  value={editFlowProperties.definition?.description} />
+              <Label htmlFor="txtFlowDefinition" className='edit-flow-modal-label'>Definição do fluxo
+                <small className='tip'> (a descrição do fluxo é definido no campo acima)</small>:</Label>
+              <Textarea
+                disabled={loadings.edit}
+                id='txtFlowDefinition'
+                className={classNames('cards-triggerActions-txtarea txa_code', styles.modern_scroll_txa)}
+                resize="vertical"
+                onChange={e => setFlowProperties((prev: any) => ({ ...prev, definition: { ...JSON.parse(e.target.value), description: prev.definition.description } }))}
+                value={JSON.stringify(editFlowProperties.definition, null, 2)} />
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <DialogTrigger>
+              <Button appearance="outline" onClick={() => modalMustBeOpened(false)}>Cancelar</Button>
+            </DialogTrigger>
+            <Button
+              disabled={loadings.edit}
+              appearance="primary"
+              onClick={() => handleFlowActions('modifyFlow')}
+            >
+              {
+                loadings.edit ?
+                  <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Salvando...</>
+                  : 'Salvar'
+              }
 
-                <Label htmlFor="txtFlowDefinition" className='edit-flow-modal-label'>Definição do fluxo
-                  <small className='tip'> (a descrição do fluxo é definido no campo acima)</small>:</Label>
-                <Textarea
-                  disabled={loadins.edit}
-                  id='txtFlowDefinition'
-                  className={classNames('cards-triggerActions-txtarea txa_code', styles.modern_scroll_txa)}
-                  resize="vertical"
-                  onChange={e => setFlowProperties((prev: any) => ({ ...prev, definition: { ...JSON.parse(e.target.value), description: prev.definition.description } }))}
-                  value={JSON.stringify(editFlowProperties.definition, null, 2)} />
-              </div>
-            </DialogContent>
-            <DialogActions>
-              <DialogTrigger>
-                <Button appearance="outline" onClick={() => modalMustBeOpened(false)}>Cancelar</Button>
-              </DialogTrigger>
-              <Button
-                disabled={loadins.edit}
-                appearance="primary"
-                onClick={() => handleFlowActions('modifyFlow')}
-              >
-                {
-                  loadins.edit ?
-                    <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Salvando...</>
-                    : 'Salvar'
-                }
-
-              </Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-    )
-  }
+            </Button>
+          </DialogActions>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
+  )
 
   const DeleteButton = () => {
 
@@ -586,7 +634,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
         <DialogTrigger>
           <ToolbarButton>
             {
-              loadins.delete ?
+              loadings.delete ?
                 <><SiSpinrilla className={classNames('details-info-links-icon details-info-links-danger', styles.spin)} /> Excluindo...</>
                 : <><BiTrash className='details-info-links-icon details-info-links-danger' />Excluir</>
             }
@@ -630,7 +678,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
         <DialogTrigger>
           <ToolbarButton className={classNames({ ['details-info-links-warning']: selFlow.state !== 'Started' })}>
             {
-              loadins.running ?
+              loadings.running ?
                 <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Executando...</>
                 : <><BsFillPlayFill className={classNames('details-info-links-icon', { ['details-info-links-warning']: selFlow.state !== 'Started' })} />Executar</>
             }
@@ -668,9 +716,9 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
               <Button
                 appearance="primary"
-                disabled={loadins.running || selFlow.state !== 'Started'}
+                disabled={loadings.running || selFlow.state !== 'Started'}
                 onClick={() => handleFlowActions('runFlow')}>
-                {loadins.running ? 'Executando...' : (selFlow.state !== 'Started' ? 'Fluxo desligado' : 'Executar')}
+                {loadings.running ? 'Executando...' : (selFlow.state !== 'Started' ? 'Fluxo desligado' : 'Executar')}
               </Button>
 
             </DialogActions>
@@ -699,7 +747,7 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           <ToolbarButton onClick={() => handleFlowActions(isFlowStarted ? 'turnOff' : 'turnOn')}>
 
             {
-              loadins.state ?
+              loadings.state ?
                 <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> {isFlowStarted ? 'Desligando...' : 'Ligando...'}</>
                 : (
                   isFlowStarted ?
@@ -727,25 +775,140 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     )
   }
 
+  const FlowRunsTable = () => {
+
+    const flowRunActions = (action: 'resubmit' | 'cancel', runProps: { name: string, startTime: string }) => {
+      setLoading(prev => ({ ...prev, runActions: { id: runProps.name, state: true } }))
+
+      if (action === 'resubmit') {
+        ResubmitFlowRun(pr.token, selFlow.envName, selFlow.name, runProps.name, selFlow.triggerName as string)
+          .then(resp => setErrors(prev => ([{ id: uuid(), msg: `Execução de "${runProps.startTime}" reexecutada`, intent: 'success' }, ...prev])))
+          .catch(e => {
+            setErrors(prev => ([{ id: uuid(), msg: JSON.stringify(e) }, ...prev]))
+            setLoading(prev => ({ ...prev, running: false }))
+          })
+          .finally(() => setLoading(prev => ({ ...prev, runActions: { id: null, state: false } })))
+
+        // setLoading(prev => ({ ...prev, runActions: { id: null, state: false } }))
+        return
+      }
+
+      if (action === 'cancel') {
+        CancelFlowRun(pr.token, selFlow.envName, selFlow.name, runProps.name)
+          .then(resp => setErrors(prev => ([{ id: uuid(), msg: `Execução de "${runProps.startTime}" cancelada`, intent: 'success' }, ...prev])))
+          .catch(e => {
+            setErrors(prev => ([{ id: uuid(), msg: JSON.stringify(e) }, ...prev]))
+            setLoading(prev => ({ ...prev, running: false }))
+          })
+          .finally(() => setLoading(prev => ({ ...prev, runActions: { id: null, state: false } })))
+
+        return
+      }
+
+    }
+
+    return (
+      <table className='runs-table'>
+        <thead>
+
+          {[
+            { id: 'startTime', title: 'Início' },
+            { id: 'duration', title: 'Duração' },
+            { id: 'status', title: 'Status' },
+            { id: 'error', title: 'Erro' }
+          ].map(col => <th key={col.id} className={`runs-table-${col.id}`}>{col.title}</th>)}
+
+        </thead>
+        <tbody>
+          {flowRuns?.map((run: any) => {
+
+            const startTime = DateTime.fromISO(run.properties.startTime)
+            const endTime = run.properties.endTime && DateTime.fromISO(run.properties.endTime)
+            const status: TRunStatus = run.properties.status;
+            const errorCode = run.properties?.error?.code as string | undefined;
+            const errorMsg = run.properties?.error?.message as string | undefined;
+            const errorText = errorCode && errorMsg ? `(${run.properties.error.code}) ${run.properties.error.message}` : JSON.stringify(run.properties?.error);
+            const statusToPresence: Record<TRunStatus, 'available' | 'unknown' | 'away' | 'offline'> = {
+              Succeeded: 'available',
+              Running: 'away',
+              Cancelled: 'offline',
+              Failed: 'unknown'
+            }
+            const cancelFlowRunProps = {}
+            const resubmitFlowRunProps = {}
+
+            return (
+              <tr key={run.name}>
+
+                <td className='runs-table-startTime'>
+                  <div className='runs-cell-startTime'>
+                    <a target='__blank' href={`${urlFlow.runs}/${run.name}`} className='runs-link'>
+                      {friendlyDate(startTime)}
+                    </a>
+
+                    {
+                      loadings.runActions.id === run.name ?
+                        <Button size='small' disabled icon={<SiSpinrilla className={styles.spin} />} />
+                        : (
+                          !loadings.runActions.state &&
+                          <div className='runs-cell-actions'>
+                            {
+                              status === 'Running' &&
+                              <Tooltip content="Cancelar execução" relationship="label">
+                                <Button
+                                  size='small'
+                                  icon={<IoMdClose />}
+                                  className='runs-actions-hide'
+                                  onClick={() => flowRunActions('cancel', { name: run.name, startTime: friendlyDate(startTime) })} />
+                              </Tooltip>
+                            }
+
+                            <Tooltip content="Reexecutar" relationship="label">
+                              <Button
+                                size='small'
+                                icon={<MdReplay />}
+                                className='runs-actions-hide'
+                                onClick={() => flowRunActions('resubmit', { name: run.name, startTime: friendlyDate(startTime) })} />
+                            </Tooltip>
+
+                          </div>
+                        )
+                    }
+
+                  </div>
+                </td>
+                <td className='runs-table-duration'>{endTime ? endTime.diff(startTime).toFormat('hh:mm:ss') : DateTime.now().diff(startTime).toFormat('hh:mm:ss')}</td>
+                <td className='runs-table-status'>
+                  <div className='runs-cell-status'>
+                    <PresenceBadge size='extra-small' status={statusToPresence[status]} />
+                    {status}
+                  </div>
+                </td>
+                <td className='runs-cell-error runs-table-error'>{errorText}</td>
+
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    )
+  }
+
 
   return (
     <div className={styles.details_page}>
 
       <Card className='details-main'>
         <div>
-
           <Title3 title={pr.selectedFlow.properties.displayName} className={styles.details_page_topic}>
 
-
-            {
-              pr.selectedFlow.properties.state === 'Started' ?
-                <PresenceBadge title={pr.selectedFlow.properties.state} className={styles.state_started} /> : (
-                  pr.selectedFlow.properties.state === 'Stopped' ?
-                    <PresenceBadge outOfOffice status="offline" className={styles.state_stopped} title={pr.selectedFlow.properties.state} />
-                    :
-                    <PresenceBadge outOfOffice status="busy" className={styles.state_suspended} title={pr.selectedFlow.properties.state} />
-                )
-            }
+            {pr.selectedFlow.properties.state === 'Started' ?
+              <PresenceBadge title={pr.selectedFlow.properties.state} className={styles.state_started} /> : (
+                pr.selectedFlow.properties.state === 'Stopped' ?
+                  <PresenceBadge outOfOffice status="offline" className={styles.state_stopped} title={pr.selectedFlow.properties.state} />
+                  :
+                  <PresenceBadge outOfOffice status="busy" className={styles.state_suspended} title={pr.selectedFlow.properties.state} />
+              )}
 
             {pr.selectedFlow.properties.displayName}
           </Title3>
@@ -771,9 +934,10 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           ))}
 
         </div>
-
         <Divider />
+
         <div className="details-info">
+
           <div className="details-info-main">
             <Status />
             <Description />
@@ -818,30 +982,12 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
 
       </Card>
 
-      <Card style={{ margin: '15px 0' }}>
+      <Card style={{ margin: '15px 0' }} >
         <LabelText label='Histórico de execução' labelOnly />
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {['Início', 'Duração', 'Status'].map(col => (
-                <TableHeaderCell key={col}>{col}</TableHeaderCell>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {flowRuns?.map((run: any) => (
-              <TableRow key={run.name}>
-                <TableCell>
-                  {DateTime
-                    .fromISO(run.properties.startTime, { locale: 'pt-BR' })
-                    .toFormat('dd LLL yy HH:mm:ss')}
-                </TableCell>
-                <TableCell>{'duração...'}</TableCell>
-                <TableCell>{run.properties.status}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className={classNames('runs-table', styles.modern_scroll)}>
+          <FlowRunsTable />
+
+        </div>
 
       </Card>
 
