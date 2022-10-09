@@ -27,16 +27,22 @@ import 'prismjs/themes/prism.css'; //Example style, you can use another
 
 /*
 TAREFAS
-- ações da toolbar 🆗
-- Toolbar: Botão para executar fluxos de botão 🆗
-- Execuções do fluxo - pegar da api 🆗
-- Ações das execuções do fluxo 🆗
-- Toolbar: Compartilhar fluxo, abrir modal para inserção do email ❌ - requisições precisam ser feitas para o Graph
+- 🆗 ações da toolbar
+- 🆗 Toolbar: Botão para executar fluxos de botão
+- 🆗 Execuções do fluxo - pegar da api
+- 🆗 Ações das execuções do fluxo
+- ❌ Toolbar: Compartilhar fluxo, abrir modal para inserção do email - requisições precisam ser feitas para o Graph
+- Card Conexões do fluxo
+- Card Proprietários e Membros (com quem está compartilhado)
+- Card Ações e Gatilho: Fazer um mini flow, talvez só com as ações raizes ou mesmo usar um Accordion, o que for mais simples.
+
+- Nova Seção: Table, ficará na posição do Main. Essa tela aparece sem fluxo selecioando, a Main atual substituirá quando fluxo for selecionado.
+- Main: Adicionar botão de fechar para voltar para a tabela
+- FlowsList: Adicionar botão ao lado de Fluxos para voltar a tabela
+- Table: Filtro nos fluxos igual era no antigo
+
 - Toolbar: Download do fluxo
-- Filtro nos fluxos igual era no antigo
-- Main: Colocar card para conexões
-- Gatilho e Ações mais bonitinho - pegar da api
-- Obter conexões e proprietários de cada fluxo
+- Boss: Reorganizar projeto com perfeita componentização e melhor reaproveitamento de código, como nas modals.
 */
 
 
