@@ -129,7 +129,5 @@ table {
 
 html,
 body {
-    background-color: #333;
-    max-height: 100vh !important;
-    overflow: hidden;
+    background-color: #292929;
 }

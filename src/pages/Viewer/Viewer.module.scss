@@ -1,0 +1,56 @@
+.alerts {
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.flist_select {
+    min-width: none;
+    justify-content: flex-start !important;
+    text-align: start !important;
+    max-width: 500px;
+}
+
+.table_card {
+    display: flex;
+    flex-direction: column;
+    &_toolbar {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        flex: 0 1 60px;
+    }
+}
+
+.breadcrumb {
+    margin: 0;
+    &_text {
+        line-height: 2em;
+        font-size: 20px;
+        font-weight: 500;
+    }
+    &_selected {
+        color: inherit !important;
+        text-decoration: none;
+        cursor: default !important;
+        &:hover {
+            cursor: default !important;
+            text-decoration: none !important;
+        }
+    }
+}
+
+.App {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    &_Header {
+        flex: 0 1 30px;
+    }
+    &_Breadcrumb {
+        flex: 0 1 40px;
+    }
+    &_Main {
+        flex: 0 0 auto;
+        overflow: hidden;
+    }
+}

@@ -25,7 +25,6 @@ import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism.css'; //Example style, you can use another
 
-import 'bootstrap/dist/css/bootstrap.min.css'
 
 
 /*
@@ -37,7 +36,6 @@ TAREFAS
 - ❌ Toolbar: Compartilhar fluxo, abrir modal para inserção do email - requisições precisam ser feitas para o Graph
 - 🆗 Card Conexões do fluxo
 - ❌ Card Proprietários e Membros (com quem está compartilhado) - Bearer Token diferente
-- Card Ações e Gatilho: Fazer um mini flow, talvez só com as ações raizes ou mesmo usar um Accordion, o que for mais simples.
 
 - Nova Seção: Table, ficará na posição do Main. Essa tela aparece sem fluxo selecioando, a Main atual substituirá quando fluxo for selecionado.
 - Main: Adicionar botão de fechar para voltar para a tabela

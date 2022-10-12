@@ -1,105 +1,194 @@
-import React, { useEffect, useId, useState } from 'react';
-import styles from './App.module.scss';
-import { Card } from '@fluentui/react-components/unstable';
-import MainScreen from './components/MainScreen';
+import React, { useEffect, useState } from 'react'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import { Alert, Card } from '@fluentui/react-components/unstable';
+import { Button, CompoundButton, Divider, Input, PresenceBadge, Spinner, Tooltip } from '@fluentui/react-components';
+import { HiOutlineExternalLink } from 'react-icons/hi';
+import { BiClipboard, BiBuilding } from 'react-icons/bi';
+import styles from './App.module.scss'
+import { AiFillCloseCircle } from 'react-icons/ai';
 import { GetEnvironments } from './services/requests';
-import { Button, Input, Label, Spinner, Textarea, Tooltip } from '@fluentui/react-components';
-import { BiClipboard } from 'react-icons/bi'
-import { SiSpinrilla } from 'react-icons/si'
+import uuid from 'react-uuid';
+import classNames from 'classnames';
+import Viewer from './pages/Viewer';
+import { ErrorsProps, ILoginInfo, ILoginInfoError, LoginProps, SelectEnvironmentProps, tokenChecks } from './interfaces';
 
 export default function App() {
 
   const [token, setToken] = useState<string>('')
+  const [loginInfo, setLoginInfo] = useState<ILoginInfo | ILoginInfoError>()
   const [environments, setEnvironments] = useState<any[]>([])
-  const [error, setError] = useState<string | JSX.Element>(<></>);
+  const [selectedEnvironment, selectEnvironment] = useState<any>();
+  const [errors, setErrors] = useState<any[]>([]);
   const [loadingLogin, setLoadingLogin] = useState(false);
 
   useEffect(() => {
-    if (environments.length) console.log(environments)
 
-  }, [environments])
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = JSON.parse(decodeURIComponent(
+          window
+            .atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        ));
 
-  const handleLogout = () => setEnvironments([]);
-  const handleLogin = () => {
+        setLoginInfo({
+          exp: jsonPayload.exp,
+          name: jsonPayload.name,
+          given_name: jsonPayload.given_name,
+          unique_name: jsonPayload.unique_name,
+          upn: jsonPayload.upn,
+        });
+
+      } catch (e) {
+        setLoginInfo({ error: { message: e } });
+      }
+    }
+  }, [token])
+
+  const handleLogout = () => {
+    setEnvironments([])
+    selectEnvironment(null)
+  };
+
+  const handleLogin = (e: any) => {
+    e.preventDefault();
+    setErrors([])
     setLoadingLogin(true)
 
     GetEnvironments(token)
       .then((envsData: any) => {
-        setError(<></>)
-        setEnvironments(envsData.data.value)
+        setErrors([])
+        const newEnvs = envsData.data.value
+          .sort((a: any, b: any) => a.properties.isDefault === b.properties.isDefault ? 0 : (a.properties.isDefault ? -1 : 1))
+          .sort((a: any, b: any) => (a.properties.displayName > b.properties.displayName) ? 1 : -1)
+        setEnvironments(newEnvs)
       })
       .catch(e => handleErrors(e))
-      .finally(() => {
-        setLoadingLogin(false);
-      })
+      .finally(() => setLoadingLogin(false))
   }
+
   const handleErrors = (e: any) => {
-
-    // alert(JSON.stringify(e));
-    // console.log(e);
-
-    let error: string | JSX.Element = JSON.stringify(e);
-
-    if (e?.response?.data?.error?.code) error = <><b>({e.response.data.error.code})</b>: {e.response.data.error.message}</>
-
-    setError(error)
-
-
+    const newError = { ...e.response.data, id: uuid() };
+    setErrors(prev => prev.length ? [newError, ...prev] : [newError])
   }
 
+  if (environments.length && selectedEnvironment && loginInfo)
+    return <Viewer
+      token={token}
+      loginInfo={loginInfo as ILoginInfo}
+      handleLogout={handleLogout}
+      selectedEnvironment={selectedEnvironment}
+    />
 
-  return (
-
-    <div className={styles.App}>
-
-      <div className={styles.cardContainer}>
-
-        {
-          environments.length ?
-            <MainScreen
-              environments={environments}
-              handleLogout={handleLogout}
-              token={token}
-            />
-            :
-            <LoginPage handleLogin={handleLogin} token={token} setToken={setToken} error={error} loadingLogin={loadingLogin} />
-        }
-
+  else
+    return (
+      <div className='d-flex justify-content-center align-items-center h-100 flex-column'>
+        <div className={classNames(styles.login_card)}>
+          {
+            environments.length && !selectedEnvironment ?
+              <SelectEnvironment
+                loginInfo={loginInfo}
+                environments={environments}
+                selectEnvironment={selectEnvironment}
+                handleLogout={handleLogout}
+              />
+              :
+              <LoginPage
+                handleErrors={handleErrors}
+                loginInfo={loginInfo}
+                token={token}
+                setToken={setToken}
+                handleLogin={handleLogin}
+                loadingLogin={loadingLogin} />
+          }
+        </div>
+        <Errors errors={errors} setErrors={setErrors} />
       </div>
-
-    </div>
-  );
+    )
 }
 
-const LoginPage = (pr: { handleLogin: any, token: string; setToken: any; error: string | JSX.Element; loadingLogin: boolean }) => {
+const SelectEnvironment = (props: SelectEnvironmentProps) => {
 
-  const txtBearer = useId();
+  const Environment = ({ env }: any) => (
+    <>
+      <Tooltip
+        content={`${env.properties.isDefault ? 'Ambiente padrão - ' : ''}${env.properties.displayName}`}
+        relationship="label"
+        showDelay={env.properties.isDefault ? 100 : 10000}>
 
-  const handlePaste = () => {
+        <CompoundButton
+          onClick={() => props.selectEnvironment(env)}
+          style={{ width: 220 }}
+          icon={<BiBuilding />}
+          secondaryContent={env.properties.description}
+          className={styles.login_card_envs_button}>
 
-    navigator.clipboard.readText()
-      .then(text => {
-        pr.setToken(text)
-      })
-      .catch(err => {
-        alert('Failed to read clipboard contents: ' + err);
-      });
-  }
+          <div className='d-flex align-items-center flex-row'>
+            {env.properties.displayName}
+            {env.properties.isDefault &&
+              <PresenceBadge className='ms-2' title='Ambiente Padrão' />}
+          </div>
+
+        </CompoundButton>
+      </Tooltip>
+
+      {env.properties.isDefault &&
+        <Divider inset style={{ marginBottom: 9 }} />}
+    </>
+  )
 
   return (
-    <Card className={styles.login}>
+    <div className={styles.login}>
+      <div className='d-flex flex-column align-items-center'>
+        <p>Olá, {props.loginInfo.given_name}!</p>
+        <p>Selecione o ambiente:</p>
+      </div>
 
-      <Label htmlFor={txtBearer} className={styles.login_label}>
-        Insira o Token Bearer
-      </Label>
+      <div className={classNames(styles.login_card_envs, styles.modern_scroll)}>
+        {props.environments.map(env => <Environment key={env.name} env={env} />)}
+      </div>
+      <><Button appearance='secondary' onClick={props.handleLogout}>Voltar</Button></>
+    </div >
+  )
+}
 
-      <div className={styles.login_form}>
+const LoginPage = (props: LoginProps) => {
+
+  const handlePaste = () =>
+    navigator.clipboard.readText()
+      .then(text => props.setToken(text))
+      .catch(props.handleErrors);
+
+  const handleCheckToken = () => {
+    if (!props.loginInfo || !props.token)
+      return undefined
+
+    if (props.loginInfo?.error)
+      return 'error'
+
+    return 'success'
+  }
+
+  const checkToken: tokenChecks = handleCheckToken();
+
+  return (
+    <form
+      onSubmit={props.handleLogin}
+      className={classNames(styles.login)}>
+
+      <span>Insira o Bearer Token</span>
+      <div>
         <Input
-          id={txtBearer}
+          id='txtBearer'
           type="search"
           placeholder="Bearer ey..."
-          value={pr.token}
-          onChange={e => pr.setToken(e.target.value)}
+          value={props.token}
+          required
+          onChange={e => props.setToken(e.target.value)}
 
           contentAfter={(
             <BiClipboard
@@ -109,25 +198,47 @@ const LoginPage = (pr: { handleLogin: any, token: string; setToken: any; error: 
           )}
         />
       </div>
-
-      <span className={styles.login_error}>
-        {pr.error}
-      </span>
-
       <Button
-        disabled={pr.loadingLogin}
-        appearance="primary"
-        onClick={pr.handleLogin}
-        className={styles.login_button}
-      >
-        {pr.loadingLogin ?
-          <>
-            <Spinner size='tiny' />
-          </>
-          :
-          'Login'}
+        disabled={props.loadingLogin || checkToken !== 'success'}
+        appearance='primary'
+        type='submit'>
+        {props.loadingLogin ? <Spinner size='tiny' /> : 'Login'}
+      </Button>
+      <Button
+        as='a'
+        appearance='subtle'
+        target='__blank'
+        href='https://make.powerautomate.com/'
+        icon={<HiOutlineExternalLink />}
+        iconPosition='after'>
+        Abrir Power Automate
       </Button>
 
-    </Card>
+    </form>
+  )
+}
+
+const Errors = (props: ErrorsProps) => {
+
+  return (
+    <>
+      {props.errors.map(e =>
+        <Card key={e.id} className={styles.login_card_errors}>
+          <Alert
+            intent="error"
+            action={
+              <div onClick={() => props.setErrors(prev => prev.filter(err => err.id !== e.id))}>
+                <AiFillCloseCircle style={{ marginLeft: 5 }} />
+                Fechar
+              </div>
+            }
+            className='w-100'>
+            <span className={styles.login_card_errors_text}>
+              {JSON.stringify(e)}
+            </span>
+          </Alert>
+        </Card>
+      )}
+    </>
   )
 }
