@@ -87,7 +87,7 @@ export default function App() {
   else
     return (
       <div className='d-flex justify-content-center align-items-center h-100 flex-column'>
-        <div className={classNames(styles.login_card)}>
+        <Card className={classNames(styles.login_card)}>
           {
             environments.length && !selectedEnvironment ?
               <SelectEnvironment
@@ -105,7 +105,7 @@ export default function App() {
                 handleLogin={handleLogin}
                 loadingLogin={loadingLogin} />
           }
-        </div>
+        </Card>
         <Errors errors={errors} setErrors={setErrors} />
       </div>
     )

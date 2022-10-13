@@ -32,15 +32,18 @@ export default function Viewer(props: Props) {
   const Breadcrumb = () => (
     <ul className={classNames(styles.breadcrumb, styles.App_Breadcrumb)}>
       <li>
-        <span className={styles.breadcrumb_text}>
+        <span
+          className={classNames(styles.App_Breadcrumb_Level0, { [styles.App_Breadcrumb_Level0_Link]: Boolean(selectedFlow?.name) })}
+          onClick={() => selectFlow(undefined)}
+        >
           Fluxos
         </span>
       </li>
       {
-        selectedFlow?.properties?.displayName ?
+        selectedFlow?.name ?
           <li>
-            <span className={classNames(styles.breadcrumb_text, styles.breadcrumb_selected)}>
-              {selectedFlow.properties.displayName}
+            <span className={classNames(styles.App_Breadcrumb_Level1)}>
+              {selectedFlow['properties.displayName']}
             </span>
           </li> : null
       }
@@ -142,8 +145,6 @@ const ListFlows = (props: IListFlowsProps) => {
   const [loadings, setLoadings] = useState<ILoadings>({ flows: { name: null, state: false } });
   const [alerts, setAlerts] = useState<IAlert[]>([]);
   const [timeGet, setTimeGet] = useState(timeGetDef)
-
-  console.log(timeGet)
 
   const handleError = (e: any) => {
     const alert: IAlert = { intent: 'error', message: JSON.stringify(e), id: uuid() };
@@ -340,12 +341,17 @@ const ListFlows = (props: IListFlowsProps) => {
           </div>
         </div>
 
-        <QuickTable
-          style={tableStyle}
-          columns={tableCols}
-          data={flows}
-          itensPerPage={50}
-        />
+        {flows?.length ?
+          <div className={styles.FadeIn}>
+            <QuickTable
+              style={tableStyle}
+              columns={tableCols}
+              data={flows}
+              itensPerPage={50}
+            />
+          </div> : null
+        }
+
 
       </div>
     </div>

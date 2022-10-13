@@ -147,7 +147,7 @@ export default function QuickTable(props: IQuickTableProps) {
       <table className={classNames(props.tableClassName, styles.Table)} style={props.style?.table}>
         <thead>
           <tr><td colSpan={99}><Pagination /></td></tr>
-          <tr>
+          <tr className={styles.Table_Columns}>
             {props.columns.filter(col => col.show === undefined || col.show === true).map(col => {
 
               return (

@@ -60,3 +60,48 @@ ul.breadcrumb {
         display: block;
     }
 }
+
+.FadeIn {
+    -moz-animation: fadein 600ms;
+    /* Firefox */
+    -webkit-animation: fadein 600ms;
+    /* Safari and Chrome */
+    -o-animation: fadein 600ms;
+    /* Opera */
+    animation: fadein 600ms;
+    @keyframes fadein {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-moz-keyframes fadein {
+        /* Firefox */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-webkit-keyframes fadein {
+        /* Safari and Chrome */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-o-keyframes fadein {
+        /* Opera */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+}
