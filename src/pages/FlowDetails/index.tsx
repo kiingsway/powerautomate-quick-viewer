@@ -9,6 +9,7 @@ import { SiSpinrilla } from 'react-icons/si';
 import uuid from 'react-uuid';
 import { GetFlow, RunFlow } from '../../services/requests';
 import styles from './FlowDetails.module.scss'
+
 interface Props {
   token: string;
   selectFlow: React.Dispatch<any>;
@@ -21,11 +22,26 @@ interface IAlert {
   intent: 'error' | 'warning' | 'info' | 'success'
 }
 
+interface IFlowDetails {
+  name: any;
+  displayName: any;
+  state: any;
+  trigger: any;
+  actions: any;
+  triggerName: string | null;
+  envName: any;
+  uriTrigger: any;
+  connectionReferences: any;
+  connectionsNames: any[];
+}
+
 export default function FlowDetails(props: Props) {
 
-  const [selectedFlowDetails, setFlowDetails] = useState<any>();
   const [alerts, setAlert] = useState<IAlert[]>([]);
   const [loadingFlow, setLoadingFlow] = useState(false);
+  const [selectedFlowDetails, setFlowDetails] = useState<IFlowDetails>();
+
+  useEffect(() => console.log(selectedFlowDetails), [selectedFlowDetails])
 
   const handleErrors = (e: any) => {
     const alert: IAlert = { intent: 'error', message: JSON.stringify(e), id: uuid() };
@@ -38,7 +54,23 @@ export default function FlowDetails(props: Props) {
     GetFlow(props.token, props.selectedFlow['properties.environment.name'], props.selectedFlow.name)
       .catch(handleErrors)
       .then(response => {
-        setFlowDetails(response?.data)
+
+        const newDetails = {
+          name: response?.data?.name,
+          displayName: response?.data?.properties?.displayName,
+          state: response?.data?.properties?.state,
+          trigger: response?.data?.properties?.definitionSummary.triggers[0],
+          actions: response?.data?.properties.definitionSummary.actions,
+          triggerName: response?.data?.properties?.definition ? Object.keys(response?.data?.properties.definition.triggers)[0] : null,
+          envName: response?.data?.properties.environment.name,
+          uriTrigger: response?.data?.properties?.flowTriggerUri,
+          connectionReferences: response?.data?.properties.connectionReferences,
+          connectionsNames: Object.keys(response?.data?.properties.connectionReferences ?? {}) as any[],
+          // lastModifiedTime: response?.data?.properties?.lastModifiedTime ? friendlyDate(response?.data?.properties?.lastModifiedTime) : null,
+          // createdTime: response?.data?.properties?.createdTime ? friendlyDate(response?.data?.properties?.createdTime) : null,
+        }
+
+        setFlowDetails(newDetails)
       })
       .finally(() => setLoadingFlow(false))
 
@@ -46,29 +78,15 @@ export default function FlowDetails(props: Props) {
 
   useEffect(() => handleGetFlowDetails(), [])
 
-  const selFlow = selectedFlowDetails ? {
-    name: selectedFlowDetails?.name,
-    displayName: selectedFlowDetails?.properties.displayName,
-    state: selectedFlowDetails?.properties.state,
-    trigger: selectedFlowDetails?.properties.definitionSummary.triggers[0],
-    actions: selectedFlowDetails?.properties.definitionSummary.actions,
-    triggerName: selectedFlowDetails?.properties?.definition ? Object.keys(selectedFlowDetails?.properties.definition.triggers)[0] : null,
-    envName: selectedFlowDetails?.properties.environment.name,
-    uriTrigger: selectedFlowDetails?.properties?.flowTriggerUri,
-    connectionReferences: Object.keys(selectedFlowDetails?.properties.connectionReferences ?? {}) as any[],
-    // lastModifiedTime: selectedFlowDetails?.properties?.lastModifiedTime ? friendlyDate(selectedFlowDetails?.properties?.lastModifiedTime) : null,
-    // createdTime: selectedFlowDetails?.properties?.createdTime ? friendlyDate(selectedFlowDetails?.properties?.createdTime) : null,
-  } : null
-
-  console.log(selFlow)
-
   return (
     <div className={classNames('py-0', 'px-3', styles.FadeIn)}>
 
       <FlowToolbar
         token={props.token}
         loadingFlow={loadingFlow}
-        selFlow={selFlow}
+        selFlow={selectedFlowDetails}
+        handleErrors={handleErrors}
+        handleGetFlowDetails={handleGetFlowDetails}
       />
 
       {alerts.map(alert => (
@@ -76,12 +94,10 @@ export default function FlowDetails(props: Props) {
           key={alert.id}
           intent={alert.intent}
           className={classNames('mb-2', styles.alerts)}
-          action={
-            <span
-              onClick={() => setAlert(prev => prev.filter(a => a.id !== alert.id))}>
-              Fechar <IoMdClose />
-            </span>
-          }>
+          action={<span
+            onClick={() => setAlert(prev => prev.filter(a => a.id !== alert.id))}>
+            Fechar <IoMdClose />
+          </span>}>
           {alert.message}
         </Alert>
       ))}
@@ -114,28 +130,16 @@ export default function FlowDetails(props: Props) {
 
 interface FlowToolbarProps {
   token: string;
-  selFlow: {
-    name: any;
-    displayName: any;
-    state: any;
-    trigger: any;
-    actions: any;
-    triggerName: string | null;
-    envName: any;
-    uriTrigger: any;
-    connectionReferences: any[];
-  } | null;
+  selFlow: IFlowDetails | undefined;
   loadingFlow: boolean;
+  handleErrors: (e: any) => void;
+  handleGetFlowDetails: () => void;
 }
 
 const FlowToolbar = (props: FlowToolbarProps) => {
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any[]>([])
-
-  const handleErrors = () => {
-
-  }
 
   const RunModal = () => {
 
@@ -151,23 +155,34 @@ const FlowToolbar = (props: FlowToolbarProps) => {
       }
 
       RunFlow(props.token, props.selFlow.uriTrigger)
-        .catch(handleErrors)
+        .catch(props.handleErrors)
         .then(() => {
           setErrors(prev => ([{ id: uuid(), msg: `Fluxo "${props?.selFlow?.displayName}" executado`, intent: 'success' }, ...prev]))
         })
         .finally(() => setLoading(prev => (false)))
     }
 
-    return (
-      <Dialog modalType="alert">
-        <DialogTrigger>
+    const ToolbarRunFlowButton = () => {
+
+      return (
+        <Tooltip content='Executar fluxo' relationship="label" showDelay={100}>
+
           <ToolbarButton className={classNames({ ['details-info-links-warning']: props?.selFlow?.state !== 'Started' })}>
             {
               loading ?
-                <><SiSpinrilla className={classNames('details-info-links-icon', styles.spin)} /> Executando...</>
+                <><Spinner /> Executando...</>
                 : <><BsFillPlayFill className={classNames('details-info-links-icon', { ['details-info-links-warning']: props?.selFlow?.state !== 'Started' })} />Executar</>
             }
           </ToolbarButton>
+
+        </Tooltip>
+      )
+    }
+
+    return (
+      <Dialog modalType="alert">
+        <DialogTrigger>
+          <ToolbarRunFlowButton />
         </DialogTrigger>
         <DialogSurface>
           <DialogBody>
@@ -175,19 +190,19 @@ const FlowToolbar = (props: FlowToolbarProps) => {
             <DialogContent>
               <div className='connections'>
                 {!props?.selFlow?.connectionReferences?.length && 'Não há conexões para este fluxo.'}
-                {props?.selFlow?.connectionReferences.map(connection => {
+                {[] || props?.selFlow?.connectionReferences.map((connection: any) => {
                   const conn = props?.selFlow?.connectionReferences?.[connection];
                   return (
                     <div className='connection'>
                       <Avatar
                         size={40}
                         style={{ marginRight: 8 }}
-                        name={conn.displayName}
-                        image={{ src: conn.iconUri }}
+                        name={conn?.displayName}
+                        image={{ src: conn?.iconUri }}
                       />
                       <div className='connection-text'>
-                        <span>{conn.displayName}</span>
-                        <span className='connection-text-small'>{conn.connectionName}</span>
+                        <span>{conn?.displayName}</span>
+                        <span className='connection-text-small'>{conn?.connectionName}</span>
                       </div>
                     </div>
                   )
@@ -213,16 +228,108 @@ const FlowToolbar = (props: FlowToolbarProps) => {
     )
   }
 
+  const ToolbarRunFlow = () => {
+
+    const [loadingRun, setLoadingRun] = useState(false);
+
+    if (!Boolean(props?.selFlow?.uriTrigger)) return null;
+
+    const handleRunFlow = () => {
+      setLoadingRun(true);
+      alert('Ainda a implementar. Carregamento fake será acionado (não se preocupe, não estará executando)');
+      setTimeout(() => setLoadingRun(false), 3000);
+    }
+
+    return (
+
+      <Dialog>
+        <DialogTrigger>
+
+          <ToolbarButton
+            disabled={loadingRun}
+            icon={loadingRun ? <Spinner size='tiny' /> : <BsFillPlayFill />}
+            className={classNames({ ['details-info-links-warning']: props?.selFlow?.state !== 'Started' })}>
+            {loadingRun ? 'Executando...' : 'Executar'}
+          </ToolbarButton>
+
+        </DialogTrigger>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Conexões do fluxo</DialogTitle>
+            <DialogContent>
+              <div className='connections'>
+                {!props?.selFlow?.connectionsNames?.length && 'Não há conexões para este fluxo.'}
+                {(props?.selFlow?.connectionsNames || []).map((connection: string) => {
+                  const conn = props?.selFlow?.connectionReferences[connection];
+                  return (
+                    <div className='connection'>
+                      <Avatar
+                        size={40}
+                        style={{ marginRight: 8 }}
+                        name={conn?.displayName}
+                        image={{ src: conn?.iconUri }}
+                      />
+                      <div className='connection-text'>
+                        <span>{conn?.displayName}</span>
+                        <span className='connection-text-small'>{conn?.connectionName}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger><Button appearance="secondary">Fechar</Button></DialogTrigger>
+
+              <Button
+                appearance="primary"
+                icon={loadingRun ? <Spinner size='tiny' /> : undefined}
+                disabled={loadingRun || props?.selFlow?.state !== 'Started'}
+                onClick={handleRunFlow}>
+                {loadingRun ? 'Executando...' : (props?.selFlow?.state !== 'Started' ? 'Fluxo desligado' : 'Executar')}
+              </Button>
+
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog >
+    )
+
+    return (
+      <ToolbarButton
+        disabled={loadingRun}
+        icon={loadingRun ? <Spinner size='tiny' /> : <BsFillPlayFill />}
+        className={classNames({ ['details-info-links-warning']: props?.selFlow?.state !== 'Started' })}>
+        {loadingRun ? 'Executando...' : 'Executar'}
+      </ToolbarButton>
+    )
+  }
+
+  const ToolbarStatusFlow = () => {
+
+    const [loadingStatus, setLoadingStatus] = useState(true);
+
+    if (!Boolean(props?.selFlow?.uriTrigger)) return null;
+
+    return (
+      <ToolbarButton
+        disabled={loadingStatus}
+        icon={loadingStatus ? <Spinner size='tiny' /> : <BsFillPlayFill />}
+        className={classNames({ ['details-info-links-warning']: props?.selFlow?.state !== 'Started' })}>
+        {loadingStatus ? 'Executando...' : 'Executar'}
+      </ToolbarButton>
+    )
+  }
+
   return (
     <Toolbar className='mb-2'>
-      {
-        props.selFlow?.uriTrigger ?
-          <Tooltip content='Executar fluxo' relationship="label" showDelay={100}>
-            <ToolbarButton>
-              Executar
-            </ToolbarButton>
-          </Tooltip> : null
-      }
+
+      <Tooltip content='Executar fluxo' relationship="label" showDelay={100}>
+        <ToolbarRunFlow />
+      </Tooltip>
+
       <ToolbarButton>
         Desligar
       </ToolbarButton>

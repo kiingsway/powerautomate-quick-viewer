@@ -51,7 +51,7 @@ export const DeleteFlow = (token: string, environmentName: string, flowName: str
 }
 export const GetFlow = (token: string, environmentName: string, flowName: string) => {
 
-    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01&$expand=definition,properties.flowTriggerUri`;
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01&$expand=definition,connectionReferences,properties.flowTriggerUri`;
     const opt = {
         headers: { 'Accept': 'application/json', 'authorization': token }
     }

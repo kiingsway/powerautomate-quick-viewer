@@ -476,8 +476,6 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
     const txt = `Óbvio que não tá funcionando kkkk tá muito bonitinho pra ser tão funcional assim.`
     // const txt = `Óbvio que não tá funcionando kkkk tá muito bonitinho pra ser verdade. ${action}`
 
-
-
     if (action === 'turnOn' || action === 'turnOff') {
       setLoading(prev => ({ ...prev, state: true }))
 
