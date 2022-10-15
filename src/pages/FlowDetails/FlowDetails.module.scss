@@ -48,16 +48,34 @@ ul.breadcrumb {
     }
 }
 
-.card_details {
-    background-color: #333 !important;
+.card {
+    background-color: #2E2E2E !important;
     &_title {
         font-weight: 600;
         font-size: 15px;
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        align-items: center;
     }
-    & label {
-        font-size: 13px;
-        font-weight: 600;
-        display: block;
+    &_details {
+        & label {
+            font-size: 13px;
+            font-weight: 600;
+            display: block;
+        }
+    }
+    &_links {
+        justify-content: start;
+        width: 100%;
+        gap: 5px;
+        text-decoration: none;
+    }
+    &_connections {
+        &_author {
+            opacity: 0.6;
+            font-size: 12px;
+        }
     }
 }
 
@@ -103,5 +121,12 @@ ul.breadcrumb {
         to {
             opacity: 1;
         }
+    }
+}
+
+.Card_Details {
+    &_Loading {
+        background-color: #333333;
+        opacity: 0.5;
     }
 }

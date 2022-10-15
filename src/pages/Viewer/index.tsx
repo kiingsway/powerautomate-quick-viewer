@@ -195,9 +195,16 @@ const ListFlows = (props: IListFlowsProps) => {
           team: 'Compartilhado'
         }
 
+        const states = {
+          Started: 'Ativado',
+          Suspended: 'Suspenso',
+          Stopped: 'Parado'
+        }
+
         newFlows = newFlows.map(f => (
           {
             ...f,
+            properties: { ...f.properties, state: states[f.properties.state as keyof typeof states] },
             ambiente: getAmbienteFlow(f.properties.displayName),
             cliente: getClienteFlow(f.properties.displayName),
             sharedType: sharedType === 'personal' || sharedType === 'team' ? sharedTypes[sharedType] : sharedType
@@ -245,16 +252,16 @@ const ListFlows = (props: IListFlowsProps) => {
       acessor: 'properties.state',
       render: (value: any) => {
         const Badges = {
-          Started: 'available',
-          Stopped: 'offline',
-          Suspended: 'away'
+          Ativado: 'available',
+          Parado: 'offline',
+          Suspenso: 'away'
         }
         return <Tooltip
           content={value}
           relationship="label"
           showDelay={100}>
           <div className='text-center'>
-            {value === 'Started' || value === 'Stopped' || value === 'Suspended' ?
+            {value === 'Ativado' || value === 'Parado' || value === 'Suspenso' ?
               <PresenceBadge outOfOffice status={Badges[value as keyof typeof Badges] as 'available' | 'offline' | 'away'} />
               : <PresenceBadge outOfOffice status="out-of-office" />}
           </div>
@@ -306,6 +313,9 @@ const ListFlows = (props: IListFlowsProps) => {
     }
   ]
 
+  const isLoadingPersonalFlows = loadings.flows.state && loadings.flows.name === 'personal';
+  const isLoadingTeamFlows = loadings.flows.state && loadings.flows.name === 'team';
+
   return (
     <div className={classNames(styles.App_Main, { 'd-none': props.hide })}>
       <Alerts alerts={alerts} setAlerts={setAlerts} />
@@ -319,16 +329,16 @@ const ListFlows = (props: IListFlowsProps) => {
               onClick={() => handleGetFlows('personal', true)}
               className='me-3'
               secondaryContent={timeGet.personal && !loadings.flows.state ? `Obtido ${friendlyDate(timeGet.personal as DateTime)}` : undefined}
-              icon={loadings.flows.state && loadings.flows.name === 'personal' ? <Spinner size='small' /> : <BsFillPersonFill />}>
-              {timeGet.personal ? 'Atualizar' : 'Obter'} meus fluxos
+              icon={isLoadingPersonalFlows ? <Spinner size='small' /> : <BsFillPersonFill />}>
+              {timeGet.personal ? (isLoadingPersonalFlows ? 'Atualizando' : 'Atualizar') : (isLoadingPersonalFlows ? 'Obtendo' : 'Obter')} meus fluxos
             </CompoundButton>
             <CompoundButton
               size='small'
               disabled={loadings.flows.state}
               onClick={() => handleGetFlows('team', true)}
               secondaryContent={timeGet.team && !loadings.flows.state ? `Obtido ${friendlyDate(timeGet.team as DateTime)}` : undefined}
-              icon={loadings.flows.state && loadings.flows.name === 'team' ? <Spinner size='small' /> : <BsPeopleFill />}>
-              {timeGet.team ? 'Atualizar' : 'Obter'} fluxos compartilhados
+              icon={isLoadingTeamFlows ? <Spinner size='small' /> : <BsPeopleFill />}>
+              {timeGet.team ? (isLoadingTeamFlows ? 'Atualizando...' : 'Atualizar') : (isLoadingTeamFlows ? 'Obtendo' : 'Obter')} fluxos compartilhados
             </CompoundButton>
           </div>
 

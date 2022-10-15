@@ -31,6 +31,11 @@ export interface IFilterByField {
   value: string;
 }
 
+export interface ISortState {
+  order: 'asc' | 'desc'
+  prop?: string;
+}
+
 type PartialRecord<K extends string | number | symbol, T> = { [P in K]?: T; }
 
 type TStylesTypes = 'all' | 'searchText' | 'counter' | 'table' | 'th' | 'td' | 'filterSelectOutline' | 'filterSelect'

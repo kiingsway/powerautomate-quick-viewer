@@ -816,10 +816,6 @@ const Main = (pr: { selectedFlow: any, token: string, selectFlow: React.Dispatch
           <EditModal />
         </Tooltip>
 
-        {/* <Tooltip content='Compartilhar o fluxo com um e-mail' relationship="label">
-          <ShareFlowModal />
-        </Tooltip> */}
-
         <Tooltip content='Exclua o fluxo' relationship="label">
           <DeleteButton />
         </Tooltip>

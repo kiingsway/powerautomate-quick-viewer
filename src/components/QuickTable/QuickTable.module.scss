@@ -53,6 +53,7 @@
         align-items: center;
         flex-wrap: nowrap;
         &_Text {
+            cursor: pointer;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;

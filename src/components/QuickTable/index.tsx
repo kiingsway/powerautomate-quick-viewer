@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { IFilterByField, IQuickTableColumn, IQuickTableProps, IQuickTableStyle } from './interfaces';
+import { IFilterByField, IQuickTableColumn, IQuickTableProps, IQuickTableStyle, ISortState } from './interfaces';
 import { BsChevronDown, BsSortUp, BsSortDownAlt } from 'react-icons/bs'
 import uuid from 'react-uuid';
 import styles from './QuickTable.module.scss'
@@ -11,7 +11,7 @@ export interface IQuickTableColumnDefinition extends IQuickTableColumn { }
 export default function QuickTable(props: IQuickTableProps) {
 
   const [search, setSearch] = useState<string>('');
-  const [sort, setSort] = useState<{ prop?: string; order: 'asc' | 'desc' }>({ prop: undefined, order: 'asc' });
+  const [sort, setSort] = useState<ISortState>({ prop: undefined, order: 'asc' });
   const [fitlersByField, setFilterByField] = useState<IFilterByField[]>([]);
   const [page, setPage] = useState(1);
 
@@ -159,21 +159,20 @@ export default function QuickTable(props: IQuickTableProps) {
                   <div
                     style={props.style?.th}
                     className={styles.Table_Column}
+                    title='Clique para classificar'
                     onClick={col.sorteable !== false ? () => handleSort(col.acessor) : undefined}>
                     <span className={styles.Table_Column_Text}>{col.title}</span>
 
                     {/* <BsChevronDown className={styles.Table_Column_MenuIcon} /> */}
 
-                    {
-                      sort.prop === col.acessor ?
-                        (
-                          sort.order === 'asc' ?
-                            <BsSortDownAlt className={styles.Table_Column_SortIcon} />
-                            :
-                            <BsSortUp className={styles.Table_Column_SortIcon} />
-                        )
-                        : null
-                    }
+                    {sort.prop === col.acessor ?
+                      (
+                        sort.order === 'asc' ?
+                          <BsSortDownAlt className={styles.Table_Column_SortIcon} />
+                          :
+                          <BsSortUp className={styles.Table_Column_SortIcon} />
+                      )
+                      : null}
 
                   </div>
                   {col.filterable !== false ? <OptionFilter column={col} /> : null}
