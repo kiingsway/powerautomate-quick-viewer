@@ -1,6 +1,6 @@
-import { Button, Spinner, Tooltip } from '@fluentui/react-components';
+import { Button, Spinner, Tooltip, Dialog, DialogTrigger, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions } from '@fluentui/react-components';
 import styles from './FlowToolbar.module.scss'
-import { Dialog, DialogTrigger, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, Persona } from '@fluentui/react-components/unstable';
+import { Persona } from '@fluentui/react-components/unstable';
 import React, { useEffect, useState } from 'react'
 import { BiTrash } from 'react-icons/bi';
 import { BsFillPlayFill, BsToggleOff, BsToggleOn } from 'react-icons/bs';

@@ -1,5 +1,5 @@
-import { Avatar, Button, Divider, Label, Spinner, Tooltip } from '@fluentui/react-components';
-import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Table, TableBody, TableCell, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider } from '@fluentui/react-components/unstable';
+import { Avatar, Button, Divider, Label, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger } from '@fluentui/react-components';
+import { Card, Table, TableBody, TableCell, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import { DateTime } from 'luxon';
 import React, { useEffect, useState } from 'react'
@@ -7,11 +7,12 @@ import { AiOutlineFullscreen } from 'react-icons/ai';
 import { BiDetail, BiHistory } from 'react-icons/bi';
 import { BsFillPlayFill, BsPeople, BsArrowClockwise } from 'react-icons/bs';
 import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
-import { IoMdClose } from 'react-icons/io';
+import { MdOutlineCancel } from 'react-icons/md';
+import { TbRotate } from 'react-icons/tb';
 import { VscExport } from 'react-icons/vsc';
 import uuid from 'react-uuid';
 import { IToken } from '../../interfaces';
-import { GetFlowConnections, GetFlowHistories, GetFlowRuns, RunFlow } from '../../services/requests';
+import { CancelFlowRun, GetFlowConnections, GetFlowHistories, GetFlowRuns, GetWithNextLink, RunFlow } from '../../services/requests';
 import { IFlow, IHandleSetFlow, IHandleUpdateFlowsList } from '../FlowsViewer/interfaces';
 import { IHandleAlerts } from '../Login/interfaces';
 import styles from './FlowDetails.module.scss'
@@ -22,7 +23,7 @@ interface Props {
   token: IToken['text'];
   selectedFlow: IFlow;
   handleAlerts: IHandleAlerts;
-  handleSetFlow:IHandleSetFlow;
+  handleSetFlow: IHandleSetFlow;
   handleUpdateFlowsList: IHandleUpdateFlowsList
 }
 
@@ -95,7 +96,7 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
         <div className="col-12">Links</div>
       </div>
       <div className="col-8">
-        Execuções
+        <FlowRunsCard handleAlerts={handleAlerts} envName={flow.envName} token={token} flowName={flow.name} trigger={flow.trigger.name} />
       </div>
       <div className="col-4">
         Verificações
@@ -277,30 +278,30 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
           <div className="row">
             <DivCol size={12} className='mb-3'>
 
-              <FlowConnectionsCard
+              {/* <FlowConnectionsCard
                 flowName={selectedFlowDetails?.name}
                 envName={selectedFlowDetails?.envName}
-                token={token} />
+                token={token} /> */}
 
             </DivCol>
           </div>
           <div className="row">
             <DivCol md={8} size={12} className='mb-3'>
 
-              <FlowRunsCard
+              {/* <FlowRunsCard
                 flowName={selectedFlowDetails?.name}
                 envName={selectedFlowDetails?.envName}
-                token={token} />
+                token={token} /> */}
 
             </DivCol>
             <DivCol md={4} size={12} className='mb-3'>
 
-              <FlowHistoriesCard
+              {/* <FlowHistoriesCard
                 flowName={selectedFlowDetails?.name}
                 envName={selectedFlowDetails?.envName}
                 token={token}
                 trigger={selectedFlowDetails?.triggerName || undefined}
-              />
+              /> */}
 
             </DivCol>
           </div>
@@ -313,8 +314,9 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
 interface IFlowMoreDetails {
   token: string;
   envName: string;
-  flowName?: string;
+  flowName: string;
   trigger?: string;
+  handleAlerts: IHandleAlerts;
 }
 
 const FlowConnectionsCard = ({ token, envName, flowName }: IFlowMoreDetails) => {
@@ -407,13 +409,22 @@ const FlowConnectionsCard = ({ token, envName, flowName }: IFlowMoreDetails) => 
   )
 }
 
-const FlowRunsCard = ({ token, envName, flowName }: IFlowMoreDetails) => {
+const FlowRunsCard = ({ token, envName, flowName, handleAlerts }: IFlowMoreDetails) => {
 
   const [loading, setLoading] = useState(false);
   const [runs, setRuns] = useState<any[]>();
   const [nextLink, setNextLink] = useState('');
 
-  useEffect(() => console.log(runs), [runs])
+  const handleGetMore = () => {
+
+    GetWithNextLink(token, nextLink)
+      .then(resp => {
+        const runsData = resp.data;
+        setNextLink(runsData.nextLink);
+        setRuns(prev => prev ? [...prev, ...runsData.value] : runsData.value);
+      })
+
+  }
 
   const handleConnections = () => {
     if (!flowName) return
@@ -427,7 +438,11 @@ const FlowRunsCard = ({ token, envName, flowName }: IFlowMoreDetails) => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => handleConnections(), [])
+  const handleCancelFlow = (runName: string, message: string) => {
+    CancelFlowRun(token, envName, flowName, runName)
+      .then(() => handleAlerts({ add: { message, intent: 'success' } }))
+      .catch(e => handleAlerts({ add: { message: e, intent: 'error' } }))
+  }
 
   const NoRuns = () => {
 
@@ -445,6 +460,9 @@ const FlowRunsCard = ({ token, envName, flowName }: IFlowMoreDetails) => {
       </DivCol>
     )
   }
+
+  useEffect(() => console.log(runs), [runs])
+  useEffect(() => handleConnections(), [])
 
   return (
 
@@ -479,7 +497,7 @@ const FlowRunsCard = ({ token, envName, flowName }: IFlowMoreDetails) => {
 
         <NoRuns />
 
-        <RunsTable runs={runs} />
+        <RunsTable runs={runs} handleCancelFlow={handleCancelFlow} handleGetMore={handleGetMore} />
 
 
       </div>
@@ -488,14 +506,21 @@ const FlowRunsCard = ({ token, envName, flowName }: IFlowMoreDetails) => {
   )
 }
 
-const RunsTable = ({ runs, histories }: { runs?: any[], histories?: boolean }) => {
+interface RunsTableProps {
+  runs?: any[];
+  histories?: boolean;
+  handleCancelFlow: (runName: string, message: string) => void
+  handleGetMore: any;
+}
+
+const RunsTable = ({ runs, histories, handleCancelFlow, handleGetMore }: RunsTableProps) => {
 
   if (!runs?.length) return null
 
   const cols = histories ?
     ['Início', 'Duração', 'Status', 'Erro', 'Disparado?']
     :
-    ['Início', 'Duração', 'Status', 'Erro']
+    [null, 'Início', 'Duração', 'Status', 'Erro']
 
   return (
 
@@ -503,7 +528,10 @@ const RunsTable = ({ runs, histories }: { runs?: any[], histories?: boolean }) =
       <TableHeader>
         <TableRow>
           {cols.map(column => (
-            <TableHeaderCell key={column}>{column}</TableHeaderCell>
+            <TableHeaderCell
+              key={column || uuid()}>
+              {column || ''}
+            </TableHeaderCell>
           ))}
         </TableRow>
       </TableHeader>
@@ -513,6 +541,24 @@ const RunsTable = ({ runs, histories }: { runs?: any[], histories?: boolean }) =
 
           return (
             <TableRow key={run.name}>
+
+              {!histories ?
+                <TableCell>
+                  <TableCellLayout>
+                    <Tooltip content={'Reexecutar fluxo...'} relationship='label'>
+                      <Button icon={<TbRotate />} />
+                    </Tooltip>
+                    {rp.status === 'Running' ?
+                      <Tooltip content={'Cancelar execução...'} relationship='label'>
+                        <Button
+                          icon={<MdOutlineCancel />}
+                          onClick={() => handleCancelFlow(run.name, `Fluxo de "${friendlyDate(DateTime.fromISO(rp.startTime))}" cancelado`)} />
+                      </Tooltip> : null
+                    }
+                  </TableCellLayout>
+                </TableCell> : null
+              }
+
               <TableCell>
                 <TableCellLayout>
                   {friendlyDate(DateTime.fromISO(rp.startTime))}
@@ -520,13 +566,15 @@ const RunsTable = ({ runs, histories }: { runs?: any[], histories?: boolean }) =
               </TableCell>
               <TableCell>
                 <TableCellLayout>
-                  {friendlyDate(DateTime.fromISO(rp.endTime))}
+                  {rp.endTime ? friendlyDate(DateTime.fromISO(rp.endTime)) : ''}
                 </TableCellLayout>
               </TableCell>
               <TableCell>{rp.status}</TableCell>
 
               <TableCell>
-                <TableCellLayout>{JSON.stringify(rp?.error)}</TableCellLayout>
+                <TableCellLayout style={{ maxHeight: 100, overflow: 'auto', wordBreak: 'break-all', fontSize: 11 }}>
+                  {JSON.stringify(rp?.error)}
+                </TableCellLayout>
               </TableCell>
 
               {histories ?
@@ -539,8 +587,15 @@ const RunsTable = ({ runs, histories }: { runs?: any[], histories?: boolean }) =
           )
         })}
         <TableRow>
-          <TableCell>
-            <TableCellLayout>{'e agora'}</TableCellLayout>
+          <TableCell colSpan={cols.length}>
+            <TableCellLayout>
+              <Button
+                onClick={handleGetMore}
+                className='w-100'>
+                {'Obter mais'}
+
+              </Button>
+            </TableCellLayout>
           </TableCell>
         </TableRow>
       </TableBody>
@@ -638,7 +693,7 @@ const FlowHistoriesCard = ({ token, envName, flowName, trigger }: IFlowMoreDetai
       <div className='row'>
 
         <NoRuns />
-        <RunsTable runs={runs} histories />
+        {/* <RunsTable runs={runs} histories /> */}
 
       </div>
 

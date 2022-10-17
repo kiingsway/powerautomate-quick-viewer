@@ -1,5 +1,5 @@
-import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip } from '@fluentui/react-components';
-import { Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Persona } from '@fluentui/react-components/unstable';
+import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger } from '@fluentui/react-components';
+import { Persona } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react'
@@ -11,7 +11,7 @@ import { IEnvironment, IJwt, IToken } from '../../interfaces';
 import { GetFlow, GetFlows } from '../../services/requests';
 import FlowDetails from '../FlowDetails';
 import { Alerts } from '../Login';
-import { IAlert, IHandleAlerts, IHandleAlertsProps } from '../Login/interfaces';
+import { IAlert, IHandleAlertsProps } from '../Login/interfaces';
 import styles from './FlowsViewer.module.scss'
 import { IFlow, IHandleSetFlow, IHandleUpdateFlowsList, ISharedType } from './interfaces';
 
@@ -536,7 +536,6 @@ const tableStyle: IQuickTableStyleDefinition = {
 const LoadingScreen = ({ open }: { open: boolean }) => {
 
   return (
-
     <Dialog open={open}>
       <DialogSurface>
         <DialogBody>

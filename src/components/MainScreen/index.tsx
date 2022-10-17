@@ -1,6 +1,6 @@
-import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, Input, Label, MenuItem, MenuList, PresenceBadge, Spinner, Textarea, Title3, Tooltip } from '@fluentui/react-components'
+import { Avatar, AvatarNamedColor, Badge, Button, CompoundButton, Divider, Input, Label, MenuItem, MenuList, PresenceBadge, Spinner, Textarea, Title3, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger } from '@fluentui/react-components'
 import styles from './MainScreen.module.scss'
-import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Persona, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
+import { Alert, Card, Persona, Toolbar, ToolbarButton, ToolbarDivider, } from '@fluentui/react-components/unstable';
 import { useEffect, useState } from 'react';
 import { CancelFlowRun, DeleteFlow, GetFlow, GetFlowConnections, GetFlowHistories, GetFlowRuns, GetFlows, ResubmitFlowRun, RunFlow, UpdateFlow, UpdateStateFlow } from '../../services/requests';
 
