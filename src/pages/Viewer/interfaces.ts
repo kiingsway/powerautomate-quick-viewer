@@ -1,10 +1,10 @@
-import { ILoginInfo } from "../../interfaces";
+import { IToken } from "../../interfaces";
 
 export type TSharedTypes = 'personal' | 'team';
 
 export interface INavApp {
   env: any;
-  loginInfo: ILoginInfo;
+  loginInfo: IToken['jwt'];
   handleLogout: any;
 }
 

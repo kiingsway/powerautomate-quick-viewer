@@ -1,4 +1,4 @@
-import { Avatar, Button, Divider, Label, PresenceBadge, Spinner, Tooltip } from '@fluentui/react-components';
+import { Avatar, Button, Divider, Label, Spinner, Tooltip } from '@fluentui/react-components';
 import { Alert, Card, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Table, TableBody, TableCell, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import { DateTime } from 'luxon';
@@ -10,107 +10,57 @@ import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
 import { IoMdClose } from 'react-icons/io';
 import { VscExport } from 'react-icons/vsc';
 import uuid from 'react-uuid';
-import { GetFlow, GetFlowConnections, GetFlowHistories, GetFlowRuns, RunFlow } from '../../services/requests';
+import { IToken } from '../../interfaces';
+import { GetFlowConnections, GetFlowHistories, GetFlowRuns, RunFlow } from '../../services/requests';
+import { IFlow, IHandleSetFlow, IHandleUpdateFlowsList } from '../FlowsViewer/interfaces';
+import { IHandleAlerts } from '../Login/interfaces';
 import styles from './FlowDetails.module.scss'
-import { IGetFlow } from './interfaces';
+import FlowToolbar from './FlowToolbar';
+import { IFlowDetailsSummary, IFlowDetailsSummary1 } from './interfaces';
 
 interface Props {
-  token: string;
-  selectFlow: React.Dispatch<any>;
-  selectedFlow: any;
+  token: IToken['text'];
+  selectedFlow: IFlow;
+  handleAlerts: IHandleAlerts;
+  handleSetFlow:IHandleSetFlow;
+  handleUpdateFlowsList: IHandleUpdateFlowsList
 }
 
-interface IAlert {
-  id: string;
-  message: string;
-  intent: 'error' | 'warning' | 'info' | 'success'
-}
+export default function FlowDetails({ token, selectedFlow, handleAlerts, handleSetFlow, handleUpdateFlowsList }: Props) {
 
-interface IFlowDetails {
-  name: string;
-  displayName: string;
-  state: string;
-  flowSuspensionReason: string;
-  description: string;
-  trigger: any;
-  triggerName: string | null;
-  triggerSummary: any;
-  triggerConditions: any;
-  actions: any;
-  actionsSummary: any;
-  envName: any;
-  uriTrigger: any;
-  connectionReferences: any;
-  connectionsNames: any[];
-  lastModifiedTime: any;
-  createdTime: any;
-  flowFailureAlertSubscribed: any;
-}
+  const flowTriggerName = Object.keys(selectedFlow.properties.definition.triggers)[0];
 
-export default function FlowDetails(props: Props) {
-
-  const [alerts, setAlert] = useState<IAlert[]>([]);
-  const [loadingFlow, setLoadingFlow] = useState(false);
-  const [selectedFlowDetails, setFlowDetails] = useState<IFlowDetails>();
-
-  // useEffect(() => console.log(selectedFlowDetails), [selectedFlowDetails])
-
-  const handleErrors = (e: any) => {
-    const alert: IAlert = { intent: 'error', message: JSON.stringify(e), id: uuid() };
-    setAlert(prev => prev?.length ? ([alert, ...prev]) : [alert])
-    console.error(e);
-  }
-
-  const handleGetFlowDetails = () => {
-    setLoadingFlow(true)
-
-    GetFlow(props.token, props.selectedFlow['properties.environment.name'], props.selectedFlow.name)
-      .catch(handleErrors)
-      .then(response => {
-
-        const r = response?.data as IGetFlow;
-        const rp = r.properties;
-        // console.log(r)
-
-        const states = {
-          Started: 'Iniciado',
-          Suspended: 'Suspenso',
-          Stopped: 'Parado'
-        }
-
-        let newDetails = {
-          name: r.name,
-          displayName: rp.displayName,
-          state: states[rp.state as keyof typeof states],
-          flowSuspensionReason: rp.flowSuspensionReason,
-          description: rp.definitionSummary.description,
-          trigger: rp.definition.triggers,
-          triggerName: Object.keys(rp.definition.triggers)[0],
-          triggerSummary: rp.definitionSummary.triggers[0],
-          triggerConditions: null,
-          actions: rp.definition.actions,
-          actionsSummary: rp.definitionSummary.actions?.map(a => a.type).join(', '),
-          envName: rp.environment.name,
-          uriTrigger: rp.flowTriggerUri,
-          connectionReferences: rp.connectionReferences,
-          connectionsNames: Object.keys(rp.connectionReferences ?? {}) as any[],
-          lastModifiedTime: friendlyDate(DateTime.fromISO(rp.lastModifiedTime)),
-          createdTime: friendlyDate(DateTime.fromISO(rp.createdTime)),
-          flowFailureAlertSubscribed: rp.flowFailureAlertSubscribed ? 'Sim' : 'Não'
-        }
-
-        newDetails.triggerConditions = newDetails.trigger[newDetails.triggerName as keyof typeof newDetails.trigger]?.conditions?.map((c: any) => c.expression).join(' && ')
-
-        setFlowDetails(newDetails)
-
-      })
-      .finally(() => setLoadingFlow(false))
+  const flow: IFlowDetailsSummary = {
+    name: selectedFlow.name,
+    displayName: selectedFlow.properties.displayName,
+    state: selectedFlow.properties.state,
+    envName: selectedFlow.properties.environment.name,
+    lastModifiedTime: selectedFlow.properties.lastModifiedTime,
+    createdTime: selectedFlow.properties.createdTime,
+    flowFailureAlertSubscribed: selectedFlow.properties.flowFailureAlertSubscribed,
+    flowSuspensionReason: selectedFlow.properties.flowSuspensionReason,
+    trigger: {
+      uri: selectedFlow.properties.flowTriggerUri,
+      name: flowTriggerName,
+      summary: selectedFlow.properties.definitionSummary.triggers[0],
+      conditions: selectedFlow.properties.definition.triggers?.[flowTriggerName]?.conditions?.map((c: any) => c.expression),
+    },
+    actions: {
+      summary: selectedFlow.properties.definitionSummary.actions.map(a => a.swaggerOperationId ? a.swaggerOperationId : a.type),
+      value: selectedFlow.properties.definition.actions,
+    },
+    connections: {
+      names: Object.keys(selectedFlow.properties.connectionReferences),
+      references: selectedFlow.properties.connectionReferences,
+    }
 
   }
 
-  useEffect(() => handleGetFlowDetails(), [])
+  const selectedFlowDetails: any = '';
 
-  const urlFlowInitial = `https://make.powerautomate.com/environments/${selectedFlowDetails?.envName}/flows/${selectedFlowDetails?.name}`
+  console.log(flow)
+
+  const urlFlowInitial = `https://make.powerautomate.com/environments/${flow.envName}/flows/${flow.name}`
 
   const urlFlow = {
     edit: `${urlFlowInitial}`,
@@ -127,14 +77,41 @@ export default function FlowDetails(props: Props) {
   }
 
   return (
+    <div className={classNames('py-0 px-3 row', styles.FadeIn)}>
+      <div className="col-12">
+        <FlowToolbar
+          token={token}
+          flow={flow}
+          handleAlerts={handleAlerts}
+          handleSetFlow={handleSetFlow}
+          handleUpdateFlowsList={handleUpdateFlowsList}
+        />
+      </div>
+      <div className='col-8'>
+        Detalhes
+      </div>
+      <div className='col-4 row'>
+        <div className="col-12">Conexões</div>
+        <div className="col-12">Links</div>
+      </div>
+      <div className="col-8">
+        Execuções
+      </div>
+      <div className="col-4">
+        Verificações
+      </div>
+    </div>
+  )
+
+  return (
     <div className={classNames('py-0', 'px-3', styles.FadeIn)}>
 
-      <FlowToolbar
-        token={props.token}
+      {/* <FlowToolbar1
+        token={token}
         loadingFlow={loadingFlow}
         selFlow={selectedFlowDetails}
-        handleErrors={handleErrors}
-        handleGetFlowDetails={handleGetFlowDetails}
+        // handleErrors={handleErrors}
+      // handleGetFlowDetails={handleGetFlowDetails}
       />
 
       {alerts.map(alert => (
@@ -148,7 +125,7 @@ export default function FlowDetails(props: Props) {
           </span>}>
           {alert.message}
         </Alert>
-      ))}
+      ))} */}
 
       <div className="row">
 
@@ -160,7 +137,7 @@ export default function FlowDetails(props: Props) {
               <DivCol size={12} sm={8} xxl={9} className='d-flex flex-column' style={{ gap: 12 }}>
                 <div>
                   <Label>Fluxo</Label>
-                  {props.selectedFlow['properties.displayName']}
+                  {/* {props.selectedFlow['properties.displayName']} */}
                 </div>
 
                 {
@@ -173,7 +150,7 @@ export default function FlowDetails(props: Props) {
                 <div>
                   <Label>Gatilho</Label>
 
-                  {loadingFlow && !selectedFlowDetails?.trigger ?
+                  {!selectedFlowDetails?.trigger ?
                     <ProgressLoading />
                     :
                     <Triggers
@@ -189,12 +166,12 @@ export default function FlowDetails(props: Props) {
                   selectedFlowDetails?.triggerConditions ?
                     <div>
                       <Label>Condição do gatilho</Label>
-                      {selectedFlowDetails.triggerConditions}
+                      {selectedFlowDetails?.triggerConditions}
                     </div> : null
                 }
                 <div>
                   <Label>Resumo das ações</Label>
-                  {loadingFlow && !selectedFlowDetails?.actionsSummary ?
+                  {!selectedFlowDetails?.actionsSummary ?
                     <ProgressLoading /> :
                     selectedFlowDetails?.actionsSummary
                   }
@@ -205,14 +182,14 @@ export default function FlowDetails(props: Props) {
                 <div>
                   <Label>Status</Label>
                   <span className='d-flex align-items-center' style={{ gap: '5px' }}>
-                    <PresenceBadge outOfOffice status={StateBadges[props.selectedFlow['properties.state'] as keyof typeof StateBadges] as 'available' | 'offline' | 'away'} />
-                    {props.selectedFlow['properties.state']}
+                    {/* <PresenceBadge outOfOffice status={StateBadges[props.selectedFlow['properties.state'] as keyof typeof StateBadges] as 'available' | 'offline' | 'away'} />
+                    {props.selectedFlow['properties.state']} */}
                   </span>
                 </div>
                 <div>
                   <Label>Modificado</Label>
                   <span>
-                    {loadingFlow && !selectedFlowDetails?.lastModifiedTime ?
+                    {!selectedFlowDetails?.lastModifiedTime ?
                       <ProgressLoading />
                       : selectedFlowDetails?.lastModifiedTime}
                   </span>
@@ -220,25 +197,25 @@ export default function FlowDetails(props: Props) {
                 <div>
                   <Label>Criado</Label>
                   <span>
-                    {loadingFlow && !selectedFlowDetails?.createdTime ?
+                    {!selectedFlowDetails?.createdTime ?
                       <ProgressLoading />
                       : selectedFlowDetails?.createdTime}
                   </span>
                 </div>
 
 
-                {selectedFlowDetails?.flowSuspensionReason && selectedFlowDetails.state === 'Suspenso' ?
+                {selectedFlowDetails?.flowSuspensionReason && selectedFlowDetails?.state === 'Suspenso' ?
                   <div>
                     <Label>Razão da suspensão:</Label>
                     <span className='d-flex align-items-center' style={{ gap: '5px' }}>
-                      {selectedFlowDetails.flowSuspensionReason}
+                      {selectedFlowDetails?.flowSuspensionReason}
                     </span>
                   </div> : null
                 }
                 <div>
                   <Label>Receber alertas de falhas do fluxo:</Label>
                   <span>
-                    {loadingFlow && !selectedFlowDetails?.flowFailureAlertSubscribed ?
+                    {!selectedFlowDetails?.flowFailureAlertSubscribed ?
                       <ProgressLoading />
                       : selectedFlowDetails?.flowFailureAlertSubscribed}
                   </span>
@@ -301,9 +278,9 @@ export default function FlowDetails(props: Props) {
             <DivCol size={12} className='mb-3'>
 
               <FlowConnectionsCard
-                flowName={selectedFlowDetails.name}
-                envName={selectedFlowDetails.envName}
-                token={props.token} />
+                flowName={selectedFlowDetails?.name}
+                envName={selectedFlowDetails?.envName}
+                token={token} />
 
             </DivCol>
           </div>
@@ -311,18 +288,18 @@ export default function FlowDetails(props: Props) {
             <DivCol md={8} size={12} className='mb-3'>
 
               <FlowRunsCard
-                flowName={selectedFlowDetails.name}
-                envName={selectedFlowDetails.envName}
-                token={props.token} />
+                flowName={selectedFlowDetails?.name}
+                envName={selectedFlowDetails?.envName}
+                token={token} />
 
             </DivCol>
             <DivCol md={4} size={12} className='mb-3'>
 
               <FlowHistoriesCard
-                flowName={selectedFlowDetails.name}
-                envName={selectedFlowDetails.envName}
-                token={props.token}
-                trigger={selectedFlowDetails.triggerName || undefined}
+                flowName={selectedFlowDetails?.name}
+                envName={selectedFlowDetails?.envName}
+                token={token}
+                trigger={selectedFlowDetails?.triggerName || undefined}
               />
 
             </DivCol>
@@ -336,7 +313,7 @@ export default function FlowDetails(props: Props) {
 interface IFlowMoreDetails {
   token: string;
   envName: string;
-  flowName: string;
+  flowName?: string;
   trigger?: string;
 }
 
@@ -348,6 +325,7 @@ const FlowConnectionsCard = ({ token, envName, flowName }: IFlowMoreDetails) => 
   // useEffect(() => console.log(connections), [connections])
 
   const handleConnections = () => {
+    if (!flowName) return
     setLoading(true)
     GetFlowConnections(token, envName, flowName)
       .then(resp => {
@@ -438,6 +416,7 @@ const FlowRunsCard = ({ token, envName, flowName }: IFlowMoreDetails) => {
   useEffect(() => console.log(runs), [runs])
 
   const handleConnections = () => {
+    if (!flowName) return
     setLoading(true)
     GetFlowRuns(token, envName, flowName)
       .then(resp => {
@@ -597,7 +576,8 @@ const FlowHistoriesCard = ({ token, envName, flowName, trigger }: IFlowMoreDetai
   useEffect(() => console.log(runs), [runs])
 
   const handleConnections = () => {
-    if (!trigger) return
+    if (!trigger || !flowName) return
+
     setLoading(true)
     GetFlowHistories(token, envName, flowName, trigger)
       .then(resp => {
@@ -717,31 +697,31 @@ const DivCol = ({ children, className, style, size, sm, md, lg, xl, xxl }: IDivC
 
 interface FlowToolbarProps {
   token: string;
-  selFlow: IFlowDetails | undefined;
+  selFlow: IFlowDetailsSummary1 | undefined;
   loadingFlow: boolean;
   handleErrors: (e: any) => void;
-  handleGetFlowDetails: () => void;
+  // handleGetFlowDetails: () => void;
 }
 
-const FlowToolbar = (props: FlowToolbarProps) => {
+const FlowToolbar1 = (props: FlowToolbarProps) => {
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any[]>([])
 
   const RunModal = () => {
 
-    if (props?.selFlow?.uriTrigger) return null
+    if (props?.selFlow?.flowTriggerUri) return null
 
     const handleRunFlow = () => {
 
       setLoading(true)
 
-      if (!props?.selFlow?.triggerName || !props?.selFlow?.uriTrigger) {
+      if (!props?.selFlow?.triggerName || !props?.selFlow?.flowTriggerUri) {
         console.error('Propriedade não encontrada...');
         return;
       }
 
-      RunFlow(props.token, props.selFlow.uriTrigger)
+      RunFlow(props.token, props.selFlow.flowTriggerUri)
         .catch(props.handleErrors)
         .then(() => {
           setErrors(prev => ([{ id: uuid(), msg: `Fluxo "${props?.selFlow?.displayName}" executado`, intent: 'success' }, ...prev]))
@@ -819,7 +799,7 @@ const FlowToolbar = (props: FlowToolbarProps) => {
 
     const [loadingRun, setLoadingRun] = useState(false);
 
-    if (!Boolean(props?.selFlow?.uriTrigger)) return null;
+    if (!Boolean(props?.selFlow?.flowTriggerUri)) return null;
 
     const handleRunFlow = () => {
       setLoadingRun(true);
@@ -898,7 +878,7 @@ const FlowToolbar = (props: FlowToolbarProps) => {
 
     const [loadingStatus, setLoadingStatus] = useState(true);
 
-    if (!Boolean(props?.selFlow?.uriTrigger)) return null;
+    if (!Boolean(props?.selFlow?.flowTriggerUri)) return null;
 
     return (
       <ToolbarButton

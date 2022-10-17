@@ -1,4 +1,55 @@
-export interface IGetFlow {
+export interface IFlowDetailsSummary {
+
+  name: IFlowDetails['name'];
+  envName: any;
+  displayName: IFlowDetails['properties']['displayName'];
+  state: IFlowDetails['properties']['state'];
+  flowSuspensionReason: IFlowDetails['properties']['flowSuspensionReason'];
+  lastModifiedTime: IFlowDetails['properties']['lastModifiedTime'];
+  createdTime: IFlowDetails['properties']['createdTime'];
+  flowFailureAlertSubscribed: IFlowDetails['properties']['flowFailureAlertSubscribed'];
+  trigger: {
+    uri: IFlowDetails['properties']['flowTriggerUri'];
+    name: string;
+    summary: {
+      type: string;
+      kind: string;
+      metadata?: any;
+    };
+    conditions?: string[];
+  };
+  actions: {
+    value:  IFlowDetails['properties']['definition']['actions'];
+    summary: string[];
+  };
+  connections: {
+    names: string[];
+    references:  IFlowDetails['properties']['connectionReferences'];
+  };
+}
+
+export interface IFlowDetailsSummary1 {
+
+  name: IFlowDetails['name'];
+  displayName: IFlowDetails['properties']['displayName'];
+  state: IFlowDetails['properties']['state'];
+  flowSuspensionReason: IFlowDetails['properties']['flowSuspensionReason'];
+  description: IFlowDetails['properties']['definitionSummary']['description'];
+  trigger: any;
+  triggerName: string | null;
+  triggerSummary: any;
+  triggerConditions: any;
+  actions: any;
+  actionsSummary: any;
+  envName: any;
+  flowTriggerUri: any;
+  connectionReferences: any;
+  connectionsNames: any[];
+  lastModifiedTime: any;
+  createdTime: any;
+  flowFailureAlertSubscribed: any;
+}
+export interface IFlowDetails {
   name: string
   id: string
   type: string

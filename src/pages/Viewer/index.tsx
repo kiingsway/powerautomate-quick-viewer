@@ -8,14 +8,14 @@ import { BsFillPersonFill, BsPeopleFill } from 'react-icons/bs'
 import { IoMdClose } from 'react-icons/io';
 import uuid from 'react-uuid';
 import QuickTable, { IQuickTableColumnDefinition, IQuickTableStyleDefinition } from '../../components/QuickTable';
-import { ILoginInfo } from '../../interfaces';
+import { IToken } from '../../interfaces';
 import { GetFlows } from '../../services/requests';
 import FlowDetails from '../FlowDetails';
 import { AlertsProps, IAlert, IListFlowsProps, ILoadings, INavApp, TSharedTypes } from './interfaces';
 import styles from './Viewer.module.scss'
 
 interface Props {
-  loginInfo: ILoginInfo;
+  loginInfo: IToken['jwt'];
   token: string;
   handleLogout: () => void;
   selectedEnvironment: any;
@@ -60,11 +60,12 @@ export default function Viewer(props: Props) {
 
       <Breadcrumb />
 
-      {selectedFlow &&
+      {/* {selectedFlow &&
         <FlowDetails
+          handleAlerts={}
           token={props.token}
-          selectFlow={selectFlow}
-          selectedFlow={selectedFlow} />}
+          handleSetFlow={selectFlow}
+          selectedFlow={selectedFlow} />} */}
 
       <ListFlows
         selectFlow={selectFlow}
@@ -79,7 +80,7 @@ export default function Viewer(props: Props) {
 const NavApp = (props: INavApp) => {
 
   const expirationTime = DateTime
-    .fromMillis(parseInt(String(props.loginInfo.exp)) * 1000)
+    .fromMillis(parseInt(String(props.loginInfo?.expires)) * 1000)
     .toFormat('HH:mm:ss')
 
   const expirationDate = DateTime
@@ -104,8 +105,8 @@ const NavApp = (props: INavApp) => {
         <div className='d-flex flex-row align-items-center' style={{ gap: '10px' }}>
 
           <div className='d-flex flex-column align-items-end'>
-            <span>{props.loginInfo.name}</span>
-            <small className='text-muted'>{props.loginInfo.upn}</small>
+            <span>{props.loginInfo?.name}</span>
+            <small className='text-muted'>{props.loginInfo?.email}</small>
           </div>
 
           <Tooltip
