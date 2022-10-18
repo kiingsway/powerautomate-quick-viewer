@@ -71,7 +71,10 @@ export type IHandleSetFlow = (flowName: IFlow['name'] | null) => Promise<void> |
 export type IHandleUpdateFlowsList = (flowName: IFlow['name'], action: {
   remove?: boolean;
   edit?: {
-    state: 'Started' | 'Stopped';
+    state?: 'Started' | 'Stopped';
+    title?: string;
+    description?: string;
+    definition?: any;
   };
 }) => void
 

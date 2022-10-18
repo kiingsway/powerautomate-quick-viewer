@@ -52,11 +52,24 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
     if (removeAll) setAlerts(() => [])
   }
 
-  const handleUpdateFlowsList: IHandleUpdateFlowsList = (flowName: IFlow['name'], action: { remove?: boolean, edit?: { state: 'Started' | 'Stopped' } }) => {
+  const handleUpdateFlowsList: IHandleUpdateFlowsList = (
+    flowName: IFlow['name'],
+    action: {
+      remove?: boolean,
+      edit?: {
+        state?: 'Started' | 'Stopped';
+        title?: string;
+        description?: string;
+        definition?: any;
+      }
+    }
+  ) => {
+
     if (!action.edit && !action.remove) return
 
     if (action.remove) {
       setFlows(prev => prev.filter(f => f.name !== flowName));
+      selectFlow(null)
       return
     }
 

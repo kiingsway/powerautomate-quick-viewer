@@ -34,6 +34,8 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
   const flow: IFlowDetailsSummary = {
     name: selectedFlow.name,
     displayName: selectedFlow.properties.displayName,
+    description: selectedFlow.properties.definitionSummary.description,
+    definition: selectedFlow.properties.definition,
     state: selectedFlow.properties.state,
     envName: selectedFlow.properties.environment.name,
     lastModifiedTime: selectedFlow.properties.lastModifiedTime,

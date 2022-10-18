@@ -1,6 +1,7 @@
 export interface IFlowDetailsSummary {
 
   name: IFlowDetails['name'];
+  description: IFlowDetails['properties']['definitionSummary']['description'];
   envName: any;
   displayName: IFlowDetails['properties']['displayName'];
   state: IFlowDetails['properties']['state'];
@@ -8,6 +9,7 @@ export interface IFlowDetailsSummary {
   lastModifiedTime: IFlowDetails['properties']['lastModifiedTime'];
   createdTime: IFlowDetails['properties']['createdTime'];
   flowFailureAlertSubscribed: IFlowDetails['properties']['flowFailureAlertSubscribed'];
+  definition: any;
   trigger: {
     uri: IFlowDetails['properties']['flowTriggerUri'];
     name: string;
