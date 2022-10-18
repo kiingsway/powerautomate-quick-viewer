@@ -1,8 +1,13 @@
-import { Avatar, Button, Divider, Label, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger } from '@fluentui/react-components';
-import { Card, Table, TableBody, TableCell, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider } from '@fluentui/react-components/unstable';
-import classNames from 'classnames';
-import { DateTime } from 'luxon';
 import React, { useEffect, useState } from 'react'
+import styles from './FlowDetails.module.scss'
+import DetailsCard from './DetailsCard';
+import FlowToolbar from './FlowToolbar';
+
+import { IHandleAlerts } from '../Login/interfaces';
+import { IToken } from '../../interfaces';
+import { IFlowDetailsSummary } from './interfaces';
+import { IFlow, IHandleSetFlow, IHandleUpdateFlowsList } from '../FlowsViewer/interfaces';
+
 import { AiOutlineFullscreen } from 'react-icons/ai';
 import { BiDetail, BiHistory } from 'react-icons/bi';
 import { BsFillPlayFill, BsPeople, BsArrowClockwise } from 'react-icons/bs';
@@ -10,14 +15,18 @@ import { HiOutlineExternalLink, HiOutlinePencilAlt } from 'react-icons/hi';
 import { MdOutlineCancel } from 'react-icons/md';
 import { TbRotate } from 'react-icons/tb';
 import { VscExport } from 'react-icons/vsc';
-import uuid from 'react-uuid';
-import { IToken } from '../../interfaces';
+
+import { Card, Table, TableBody, TableCell, TableCellLayout, TableHeader, TableHeaderCell, TableRow, Toolbar, ToolbarButton, ToolbarDivider } from '@fluentui/react-components/unstable';
+import { Avatar, Button, Divider, Label, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger } from '@fluentui/react-components';
+import classNames from 'classnames';
+import { DateTime } from 'luxon';
 import { CancelFlowRun, GetFlowConnections, GetFlowHistories, GetFlowRuns, GetWithNextLink, RunFlow } from '../../services/requests';
-import { IFlow, IHandleSetFlow, IHandleUpdateFlowsList } from '../FlowsViewer/interfaces';
-import { IHandleAlerts } from '../Login/interfaces';
-import styles from './FlowDetails.module.scss'
-import FlowToolbar from './FlowToolbar';
-import { IFlowDetailsSummary, IFlowDetailsSummary1 } from './interfaces';
+import uuid from 'react-uuid';
+import ExternalLinksCard from './ExternalLinksCard';
+import HistoriesCard from './HistoriesCard';
+import RunsCard from './RunsCard';
+import FlowConnectionsCard from './FlowConnectionsCard';
+
 
 interface Props {
   token: IToken['text'];
@@ -61,7 +70,7 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
 
   const selectedFlowDetails: any = '';
 
-  console.log(flow)
+  // console.log(flow)
 
   const urlFlowInitial = `https://make.powerautomate.com/environments/${flow.envName}/flows/${flow.name}`
 
@@ -80,29 +89,55 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
   }
 
   return (
-    <div className={classNames('py-0 px-3 row', styles.FadeIn)}>
+    <div className={classNames('py-0 px-3 row', styles.FadeIn)} style={{ rowGap: 20 }}>
+
       <div className="col-12">
         <FlowToolbar
-          token={token}
           flow={flow}
+          token={token}
           handleAlerts={handleAlerts}
           handleSetFlow={handleSetFlow}
-          handleUpdateFlowsList={handleUpdateFlowsList}
-        />
+          handleUpdateFlowsList={handleUpdateFlowsList} />
       </div>
+
       <div className='col-8'>
-        Detalhes
+        <DetailsCard flow={flow} />
       </div>
-      <div className='col-4 row'>
-        <div className="col-12">Conexões</div>
-        <div className="col-12">Links</div>
+
+      <div className='col-4 row' style={{ rowGap: 20 }}>
+        <div className="col-12">
+          <FlowConnectionsCard
+            flow={flow}
+            token={token}
+            handleAlerts={handleAlerts} />
+        </div>
+
+        <div className="col-12">
+          <ExternalLinksCard flow={flow} />
+        </div>
       </div>
+
       <div className="col-8">
-        <FlowRunsCard handleAlerts={handleAlerts} envName={flow.envName} token={token} flowName={flow.name} trigger={flow.trigger.name} />
+        <RunsCard
+          flow={flow}
+          token={token}
+          handleAlerts={handleAlerts} />
+
+        <FlowRunsCard
+          handleAlerts={handleAlerts}
+          token={token}
+          envName={flow.envName}
+          flowName={flow.name}
+          trigger={flow.trigger.name} />
       </div>
+
       <div className="col-4">
-        Verificações
+        <HistoriesCard
+          flow={flow}
+          token={token}
+          handleAlerts={handleAlerts} />
       </div>
+
     </div>
   )
 
@@ -140,7 +175,7 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
               <DivCol size={12} sm={8} xxl={9} className='d-flex flex-column' style={{ gap: 12 }}>
                 <div>
                   <Label>Fluxo</Label>
-                  {/* {props.selectedFlow['properties.displayName']} */}
+                  nome do fluxo
                 </div>
 
                 {
@@ -313,6 +348,35 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
   )
 }
 
+interface IDivCol {
+  children?: any;
+  className?: string;
+  style?: React.CSSProperties;
+  size?: number;
+  sm?: number;
+  md?: number;
+  lg?: number;
+  xl?: number;
+  xxl?: number;
+}
+
+export const DivCol = ({ children, className, style, size, sm, md, lg, xl, xxl }: IDivCol) => (
+  <div
+    style={style}
+    className={classNames(
+      { [`col-${size}`]: size },
+      { [`col-sm-${sm}`]: sm },
+      { [`col-md-${md}`]: md },
+      { [`col-lg-${lg}`]: lg },
+      { [`col-xl-${xl}`]: xl },
+      { [`col-xxl-${xxl}`]: xxl },
+      className
+    )
+    }>
+    {children}
+  </div>
+)
+
 interface IFlowMoreDetails {
   token: string;
   envName: string;
@@ -321,7 +385,7 @@ interface IFlowMoreDetails {
   handleAlerts: IHandleAlerts;
 }
 
-const FlowConnectionsCard = ({ token, envName, flowName }: IFlowMoreDetails) => {
+const FlowConnectionsCard1 = ({ token, envName, flowName }: IFlowMoreDetails) => {
 
   const [loading, setLoading] = useState(false);
   const [connections, setConnections] = useState<any[]>();
@@ -463,15 +527,15 @@ const FlowRunsCard = ({ token, envName, flowName, handleAlerts }: IFlowMoreDetai
     )
   }
 
-  useEffect(() => console.log(runs), [runs])
+  // useEffect(() => console.log(runs), [runs])
   useEffect(() => handleConnections(), [])
 
   return (
 
-    <Card className={classNames(styles.card)} style={{ paddingTop: 6 }}>
+    <Card className={styles.DetailsCard}>
       <div className="d-flex flex-row align-items-center justify-content-between">
         <div className='d-flex flex-row' style={{ gap: 5 }}>
-          <span className={styles.card_title}>
+          <span className={styles.DetailsCard_Title}>
             Histórico de execuções
           </span>
           <Tooltip content={'Atualizar histórico...'} relationship={'label'}>
@@ -722,39 +786,9 @@ const FlowHistoriesCard_old = ({ token, envName, flowName }: IFlowMoreDetails) =
   )
 }
 
-
-interface IDivCol {
-  children?: any;
-  className?: string;
-  style?: React.CSSProperties;
-  size?: number;
-  sm?: number;
-  md?: number;
-  lg?: number;
-  xl?: number;
-  xxl?: number;
-}
-
-const DivCol = ({ children, className, style, size, sm, md, lg, xl, xxl }: IDivCol) => (
-  <div
-    style={style}
-    className={classNames(
-      { [`col-${size}`]: size },
-      { [`col-sm-${sm}`]: sm },
-      { [`col-md-${md}`]: md },
-      { [`col-lg-${lg}`]: lg },
-      { [`col-xl-${xl}`]: xl },
-      { [`col-xxl-${xxl}`]: xxl },
-      className
-    )
-    }>
-    {children}
-  </div>
-)
-
 interface FlowToolbarProps {
   token: string;
-  selFlow: IFlowDetailsSummary1 | undefined;
+  selFlow: any;
   loadingFlow: boolean;
   handleErrors: (e: any) => void;
   // handleGetFlowDetails: () => void;
@@ -1024,7 +1058,7 @@ interface ITriggers {
   kind?: string;
   swaggerOperationId?: string;
   trigger?: any;
-}
+};
 
 const Triggers = ({ type, kind, swaggerOperationId, trigger }: ITriggers) => {
 

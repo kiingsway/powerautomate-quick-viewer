@@ -13,7 +13,7 @@ import { IAlert, IHandleAlerts, IHandleAlertsProps } from '../../Login/interface
 import { IFlowConnection, IHandleSetFlow, IHandleUpdateFlowsList } from '../../FlowsViewer/interfaces';
 import uuid from 'react-uuid';
 import { Alerts } from '../../Login';
-import CodeEditor from '@uiw/react-textarea-code-editor';
+// import CodeEditor from '@uiw/react-textarea-code-editor';
 
 interface Props {
   flow: IFlowDetailsSummary;
@@ -23,29 +23,8 @@ interface Props {
   handleUpdateFlowsList: IHandleUpdateFlowsList;
 }
 
-interface ILoadingDefinition {
-  state: boolean;
-  actions: {
-    run: boolean;
-    edit: boolean;
-    state: boolean;
-    delete: boolean;
-  };
-}
-
-const loadingDef: ILoadingDefinition = {
-  state: false,
-  actions: {
-    run: false,
-    edit: false,
-    state: false,
-    delete: false,
-  }
-}
-
 export default function FlowToolbar({ flow, token, handleSetFlow, handleUpdateFlowsList }: Props) {
 
-  const [loadingAction, setLoadingAction] = useState<ILoadingDefinition>(loadingDef);
   const [loadingAny, setLoadingAny] = useState(false);
   const [alerts, setAlerts] = useState<IAlert[]>([]);
 
@@ -312,7 +291,7 @@ const EditFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny, 
                     className={classNames('w-100')}
                     defaultValue={JSON.stringify(flow.definition, null, 2)} />
 
-                  <CodeEditor
+                  {/* <CodeEditor
                     value={JSON.stringify(flow.definition, null, 2)}
                     language="json"
                     placeholder="Please enter JS code."
@@ -326,7 +305,7 @@ const EditFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny, 
                       fontSize: 12,
                       fontFamily: 'ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace',
                     }}
-                  />
+                  /> */}
                 </div>
               </div>
 

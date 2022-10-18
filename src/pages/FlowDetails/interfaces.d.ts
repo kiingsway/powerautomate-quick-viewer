@@ -16,41 +16,21 @@ export interface IFlowDetailsSummary {
     summary: {
       type: string;
       kind: string;
+      swaggerOperationId: string;
       metadata?: any;
     };
     conditions?: string[];
   };
   actions: {
-    value:  IFlowDetails['properties']['definition']['actions'];
+    value: IFlowDetails['properties']['definition']['actions'];
     summary: string[];
   };
   connections: {
     names: string[];
-    references:  IFlowDetails['properties']['connectionReferences'];
+    references: IFlowDetails['properties']['connectionReferences'];
   };
 }
 
-export interface IFlowDetailsSummary1 {
-
-  name: IFlowDetails['name'];
-  displayName: IFlowDetails['properties']['displayName'];
-  state: IFlowDetails['properties']['state'];
-  flowSuspensionReason: IFlowDetails['properties']['flowSuspensionReason'];
-  description: IFlowDetails['properties']['definitionSummary']['description'];
-  trigger: any;
-  triggerName: string | null;
-  triggerSummary: any;
-  triggerConditions: any;
-  actions: any;
-  actionsSummary: any;
-  envName: any;
-  flowTriggerUri: any;
-  connectionReferences: any;
-  connectionsNames: any[];
-  lastModifiedTime: any;
-  createdTime: any;
-  flowFailureAlertSubscribed: any;
-}
 export interface IFlowDetails {
   name: string
   id: string

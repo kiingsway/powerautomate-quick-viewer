@@ -38,6 +38,7 @@ export interface ICloudFlow {
       triggers: Array<{
         type: string
         kind: string
+        swaggerOperationId: string;
         metadata: {
           operationMetadataId: string
         }

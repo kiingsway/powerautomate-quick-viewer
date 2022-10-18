@@ -90,6 +90,7 @@ export default function QuickTable(props: IQuickTableProps) {
   const numPages = Math.ceil(tableData.length / (propsOrDefault?.itensPerPage || 100))
 
   const Pagination = () => {
+    if (numPages <= 1) return null
 
     return (
       <div className={styles.Table_Pagination}>

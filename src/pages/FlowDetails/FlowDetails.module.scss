@@ -10,45 +10,7 @@
     max-width: 400px;
 }
 
-.breadcrumb {
-    &_selected {
-        color: inherit !important;
-        text-decoration: none;
-        cursor: default !important;
-        &:hover {
-            cursor: default !important;
-            text-decoration: none !important;
-        }
-    }
-}
-
-ul.breadcrumb {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-    padding: 10px 16px;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    & li {
-        display: inline;
-        font-size: 18px;
-        & a {
-            // color: #0275d8;
-            // text-decoration: none;
-            &:hover {
-                // color: #01447e;
-                // text-decoration: underline;
-            }
-        }
-    }
-    & li+li:before {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-        padding: 8px;
-        color: white;
-        content: "›";
-    }
-}
-
-.card {
+.card1 {
     background-color: #2E2E2E !important;
     &_title {
         font-weight: 600;
@@ -124,9 +86,62 @@ ul.breadcrumb {
     }
 }
 
-.Card_Details {
-    &_Loading {
-        background-color: #333333;
+.DetailsCard {
+    background-color: #333 !important;
+    // height: 100%;
+    padding: 0 !important;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 0 !important;
+    &_Header {
+        margin: 5px 0;
+        padding: 0 10px;
+        box-sizing: border-box;
+        height: 30px !important;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        flex-direction: row;
+        justify-content: space-between;
+        &_Divider {
+            padding: 0;
+            flex-grow: 0;
+        }
+        &_Title {
+            line-height: 1em;
+            font-weight: 600;
+            font-size: 15px;
+        }
+    }
+    &_Body {
+        padding: 20px 10px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        row-gap: 8px;
+        &_Links {
+            width: 250px;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+        & label {
+            font-weight: 600;
+            display: block;
+        }
+        &_TextValue {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 5px;
+            word-break: break-word;
+        }
+    }
+    &_Details_Loading {
         opacity: 0.5;
     }
 }

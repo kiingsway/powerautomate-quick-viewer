@@ -507,7 +507,7 @@ const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows,
 
 }
 
-const tableStyle: IQuickTableStyleDefinition = {
+export const tableStyle: IQuickTableStyleDefinition = {
   all: {
     fontFamily: 'Segoe UI',
     backgroundColor: '#292929',
