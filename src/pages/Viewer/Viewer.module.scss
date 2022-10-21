@@ -1,0 +1,131 @@
+.alerts {
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.flist_select {
+    min-width: none;
+    justify-content: flex-start !important;
+    text-align: start !important;
+    max-width: 500px;
+}
+
+.table_card {
+    display: flex;
+    flex-direction: column;
+    &_toolbar {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        flex: 0 1 60px;
+    }
+}
+
+.breadcrumb {
+    &_text {}
+    &_selected {
+        color: inherit !important;
+        text-decoration: none;
+        cursor: default !important;
+        &:hover {
+            cursor: default !important;
+            text-decoration: none !important;
+        }
+    }
+}
+
+.App {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    &_Header {
+        flex: 0 1 30px;
+    }
+    &_Breadcrumb {
+        margin: 0;
+        flex: 0 1 40px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        padding: 10px 16px;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        line-height: 2em;
+        font-size: 20px;
+        &_Level {
+            &0 {
+                font-weight: 500;
+                &_Link {
+                    font-weight: 400 !important;
+                    color: #7F85F5;
+                    text-decoration: none;
+                    cursor: pointer;
+                    &:hover {
+                        text-decoration: underline;
+                    }
+                }
+            }
+            &1 {
+                font-weight: 500;
+            }
+        }
+        & li {
+            display: inline;
+            font-size: 18px;
+        }
+        & li+li:before {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            padding: 8px;
+            color: white;
+            content: "›";
+        }
+    }
+    &_Main {
+        flex: 0 0 auto;
+        overflow: hidden;
+    }
+}
+
+.FadeIn {
+    -moz-animation: fadein 600ms;
+    /* Firefox */
+    -webkit-animation: fadein 600ms;
+    /* Safari and Chrome */
+    -o-animation: fadein 600ms;
+    /* Opera */
+    animation: fadein 600ms;
+    @keyframes fadein {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-moz-keyframes fadein {
+        /* Firefox */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-webkit-keyframes fadein {
+        /* Safari and Chrome */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-o-keyframes fadein {
+        /* Opera */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+}

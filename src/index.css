@@ -130,4 +130,6 @@ table {
 html,
 body {
     background-color: #292929;
+    padding: 0;
+    margin: 0;
 }

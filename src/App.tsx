@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import 'bootstrap/dist/css/bootstrap.min.css'
-import { IEnvironment, IGetJwt, IJwt, IToken } from './interfaces';
+import { IEnvironment, IGetJwt, IToken } from './interfaces';
 import Login from './pages/Login';
 import { DateTime } from 'luxon';
 import FlowsViewer from './pages/FlowsViewer';
@@ -21,13 +21,12 @@ const App = () => {
     />
   )
 
-  return (
-    <Login
-      token={token}
-      handleToken={handleToken}
-      selectEnvironment={selectEnvironment}
-    />
-  );
+  return <Login
+    token={token}
+    handleToken={handleToken}
+    selectEnvironment={selectEnvironment}
+  />
+
 }
 
 export default App;

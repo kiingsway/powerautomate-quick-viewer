@@ -14,7 +14,6 @@ import { IAlert, IEnvironment, IHandleAlertsProps, IJwt, IToken } from '../../in
 import { GetFlow, GetFlows } from '../../services/requests';
 import FlowDetails from '../FlowDetails';
 import FlowsRecycleBin from '../FlowsRecycleBin';
-import { Alerts } from '../Login';
 import styles from './FlowsViewer.module.scss'
 import { AppPages, IAppPage, IBreadcrumbProps, IFlow, IHandleSetFlow, IHandleUpdateFlowsList, IHeaderAppProps, IMainTableProps, ISharedType } from './interfaces';
 import Connections from '../Connections';

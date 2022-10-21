@@ -17,3 +17,10 @@ export interface ILoginPageProps {
     handleAlerts: IHandleAlerts;
     setEnvironments: any;
 }
+
+export interface ISelectEnvPageProps {
+    token: IToken;
+    environments: IEnvironment[];
+    selectEnvironment: React.Dispatch<React.SetStateAction<IEnvironment | null>>;
+    handleLogout: () => void
+}

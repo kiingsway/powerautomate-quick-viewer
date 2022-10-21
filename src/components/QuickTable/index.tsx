@@ -77,7 +77,7 @@ export default function QuickTable(props: IQuickTableProps) {
         <select
           style={props.style?.filterSelect}
           className={styles.Table_Column_FilterSelect}
-          title={`Filtrar campo "${pr.column}"`}
+          title={`Filtrar campo "${pr.column.title}"`}
           onChange={e => handlerSetFilterByField(e, pr.column.acessor)}
           value={fitlersByField.filter(f => f.acessor === pr.column.acessor)[0]?.value || ''}>
           <option value="">--</option>

@@ -88,9 +88,9 @@ const FlowTrigger = ({ flow }: { flow: IFlowDetailsSummary }) => {
 
     if (type === 'Recurrence') {
       const recurrence = trigger.recurrence ? (trigger.recurrence.interval + ' ' + trigger.recurrence.frequency) : '-'
-      const weekDays = trigger.recurrence.schedule.weekDays.join(', ')
-      const hours = trigger.recurrence.schedule.hours.join(', ')
-      const minutes = trigger.recurrence.schedule.minutes.join(', ')
+      const weekDays = trigger.recurrence.schedule?.weekDays?.join(', ')
+      const hours = trigger.recurrence.schedule?.hours?.join(', ')
+      const minutes = trigger.recurrence.schedule?.minutes?.join(', ')
       const startTime = trigger.recurrence.startTime
       const timeZone = trigger.recurrence.timeZone
       return (
@@ -99,13 +99,13 @@ const FlowTrigger = ({ flow }: { flow: IFlowDetailsSummary }) => {
           <br />
           Frequência: {recurrence}
           <br />
-          Início: <FriendlyDate date={DateTime.fromISO(startTime)}/> - {timeZone}
+          Início: <FriendlyDate date={DateTime.fromISO(startTime)} /> - {timeZone}
           <br />
-          Dias da semana: {weekDays}
+          {weekDays ? `Dias da semana: ${weekDays}` : null}
           <br />
-          Horas: {hours}
+          {hours ? `Horas: ${hours}` : null}
           <br />
-          Minutos: {minutes}
+          {minutes ? `Minutos: ${minutes}` : null}
         </span>
       )
     }
@@ -138,6 +138,19 @@ const FlowTrigger = ({ flow }: { flow: IFlowDetailsSummary }) => {
         return (
           <span>
             Item criado em lista
+            <br />
+            Site: {site}
+            <br />
+            Lista: {table}
+            <br />
+            Recorrência: {recurrence}
+          </span>
+        )
+      }
+      if (swop === "GetOnUpdatedFileItems") {
+        return (
+          <span>
+            Quando um arquivo é criado ou modificado (somente propriedades)
             <br />
             Site: {site}
             <br />

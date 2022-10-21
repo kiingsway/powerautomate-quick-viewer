@@ -5,7 +5,7 @@ import { Card } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import uuid from 'react-uuid';
 import { GetEnvironments } from '../../services/requests';
-import { Input, Button, Spinner, Avatar, Divider } from '@fluentui/react-components';
+import { Input, Button, Spinner, Avatar, Divider, CompoundButton, Badge } from '@fluentui/react-components';
 import { BiBuilding, BiClipboard, BiInfoCircle } from 'react-icons/bi';
 import { TbAlertTriangle } from 'react-icons/tb';
 import { HiOutlineExternalLink } from 'react-icons/hi';
@@ -14,7 +14,7 @@ import { BsCheckCircle } from 'react-icons/bs';
 import { IoMdClose } from 'react-icons/io';
 import { DateTime } from 'luxon';
 import { FriendlyDate } from '../../App';
-import { IAlertMessage, IAlertsProps, ILoginPageProps } from './interfaces';
+import { IAlertMessage, IAlertsProps, ILoginPageProps, ISelectEnvPageProps } from './interfaces';
 
 interface Props {
   token: IToken;
@@ -25,7 +25,7 @@ interface Props {
 export default function Login({ token, handleToken, selectEnvironment }: Props) {
 
   const [environments, setEnvironments] = useState<IEnvironment[]>();
-  const [alerts, setAlerts] = useState<IAlert[]>([]);
+  const [alerts, setAlerts] = useState<IAlert[]>();
 
   const handleAlerts = ({ add, remove, removeAll }: IHandleAlertsProps) => {
     if (!add && !remove && !removeAll) return
@@ -40,13 +40,13 @@ export default function Login({ token, handleToken, selectEnvironment }: Props) 
         message = `${message?.code}: ${message?.message}`;
       } else message = String(add.message);
 
-      if (!alerts.find(a => a.message === message))
-        setAlerts(prev => [{ id, message, intent, createdDateTime }, ...prev])
+      if (!(alerts || []).find(a => a.message === message))
+        setAlerts(prev => [{ id, message, intent, createdDateTime }, ...(prev || [])])
     }
 
-    if (remove) setAlerts(prev => prev.filter(a => a.id !== remove))
+    if (remove) setAlerts(prev => (prev || []).filter(a => a.id !== remove))
 
-    if (removeAll) setAlerts(prev => [])
+    if (removeAll) setAlerts(prev => undefined)
   }
 
   const handleLogout = () => {
@@ -54,10 +54,9 @@ export default function Login({ token, handleToken, selectEnvironment }: Props) 
     setEnvironments([]);
   };
 
-
   return (
-    <div className='d-flex justify-content-center align-items-center h-100 flex-column mx-4'>
-      <Card className={classNames(styles.Card, styles.LoginCard)}>
+    <div className={styles.Screen}>
+      <Card className={classNames('m-0', styles.Card)}>
         {environments && environments.length ?
           <SelectEnvironmentPage
             token={token}
@@ -76,7 +75,7 @@ export default function Login({ token, handleToken, selectEnvironment }: Props) 
 
 
       </Card>
-      {alerts.length ? <Card className={classNames(styles.AlertsCard, styles.BlueScroll)}>
+      {alerts && alerts.length ? <Card className={classNames(styles.AlertsCard, styles.BlueScroll)}>
         <Alerts
           maxHeight={300}
           alerts={alerts}
@@ -105,7 +104,7 @@ const LoginPage = ({ token, handleToken, handleAlerts, setEnvironments }: ILogin
         const newEnvironments = envData.data.value;
 
         if (!newEnvironments.length)
-          handleAlerts({ add: { id: 'NoEnv', message: 'Nenhum ambiente encontrado nesta autenticação', intent: 'info' } })
+          handleAlerts({ add: { id: 'NoEnv', message: 'Nenhum ambiente encontrado nesta autenticação.', intent: 'info' } })
         else
           handleAlerts({ removeAll: true });
 
@@ -116,27 +115,22 @@ const LoginPage = ({ token, handleToken, handleAlerts, setEnvironments }: ILogin
   }
 
   return (
-    <form
-      onSubmit={handleLogin}
-      className={classNames(styles.Card, styles.LoginCard_Form)}>
-
+    <form onSubmit={handleLogin} className={styles.LoginForm}>
       <span>Insira o Bearer Token</span>
-      <div>
-        <Input
-          id='txtBearer'
-          type="search"
-          placeholder="Bearer ey..."
-          value={token.text}
-          onChange={e => handleToken(e.target.value)}
-          required
-          contentAfter={(
-            <BiClipboard
-              onClick={handlePaste}
-              title='Colar'
-              className={styles.LoginCard_PasteButton} />
-          )}
-        />
-      </div>
+      <Input
+        id='txtBearer'
+        type="search"
+        placeholder="Bearer ey..."
+        value={token.text}
+        onChange={e => handleToken(e.target.value)}
+        required
+        contentAfter={(
+          <BiClipboard
+            onClick={handlePaste}
+            title='Colar'
+            className={styles.LoginCard_PasteButton} />
+        )}
+      />
       <Button
         disabled={loading || !Boolean(token.jwt)}
         appearance='primary'
@@ -157,13 +151,6 @@ const LoginPage = ({ token, handleToken, handleAlerts, setEnvironments }: ILogin
   )
 }
 
-interface ISelectEnvPageProps {
-  token: IToken;
-  environments: IEnvironment[];
-  selectEnvironment: React.Dispatch<React.SetStateAction<IEnvironment | null>>;
-  handleLogout: () => void
-}
-
 const SelectEnvironmentPage = ({ token, selectEnvironment, environments, handleLogout }: ISelectEnvPageProps) => {
 
   const [selEnv, selectEnv] = useState<IEnvironment | null>(environments.filter(env => env.properties.isDefault)[0] || null)
@@ -173,47 +160,50 @@ const SelectEnvironmentPage = ({ token, selectEnvironment, environments, handleL
   const Environment = ({ env }: any) => {
     const isSelected = selEnv?.name === env.name;
     const isDefault = env.properties.isDefault;
+
+    const IsEnvDefault = () => {
+      if (!isDefault) return null
+      return (
+        <Badge
+          appearance="filled"
+          color="brand"
+          className={styles.EnvironmentForm_Environments_Default}>
+          Padrão
+        </Badge>
+      )
+    }
+
     return (
-      <div
+      <CompoundButton
+        size='small'
         onClick={() => selectEnv(env)}
-        className={classNames(styles.EnvCard_EnvironmentAvatar, { [styles.EnvCard_EnvironmentAvatar_Selected]: isSelected })}
-      >
-        <Avatar
-          badge={isSelected ? { status: 'available', size: 'medium' } : undefined}
-          size={36}
+        secondaryContent={env.properties.description}
+        appearance='secondary'
+        className={styles.EnvironmentForm_Environments_Item}
+        icon={<Avatar
+          className={styles.EnvironmentForm_Environments_Item_Avatar}
+          badge={isSelected ? { status: 'available', size: 'large', outOfOffice: true } : undefined}
+          size={48}
           shape="square"
           icon={<BiBuilding />}
-          aria-label={env.properties.displayName} />
-        <div className={styles.EnvCard_EnvironmentAvatar_Text}>
-          <span>
-            {env.properties.displayName}
-          </span>
-          {isDefault ?
-            <span className={styles.EnvCard_EnvironmentAvatar_EnvDefault}>
-              Ambiente padrão
-            </span> : null
-          }
-          <span className={styles.EnvCard_EnvironmentAvatar_Description}>
-            {env.properties.description}
-          </span>
+          aria-label={env.properties.displayName} />}>
+            
+        {env.properties.displayName} <IsEnvDefault />
 
-        </div>
-      </div>
+      </CompoundButton>
     )
   }
 
   return (
-    <div className={classNames(styles.Card, styles.EnvCard)}>
-      <div className='d-flex flex-column align-items-center'>
-        <p>Olá, {token.jwt?.given_name}!</p>
-        <p>Selecione o ambiente:</p>
-      </div>
+    <div className={styles.EnvironmentForm}>
+      <span>Olá, {token.jwt?.given_name}!</span>
+      <span>Selecione o ambiente:</span>
 
-      <div className={classNames(styles.EnvCard_Environments, styles.BlueScroll)}>
+      <div className={classNames(styles.EnvironmentForm_Environments, styles.BlueScroll)}>
         {environments.map(env => <Environment key={env.name} env={env} />)}
       </div>
 
-      <div className={styles.EnvCard_Actions}>
+      <div className={styles.EnvironmentForm_Actions}>
         <Button appearance='secondary' onClick={handleLogout}>Voltar</Button>
         <Button appearance='primary' onClick={handleLogin}>Login</Button>
       </div>
@@ -222,7 +212,7 @@ const SelectEnvironmentPage = ({ token, selectEnvironment, environments, handleL
   )
 }
 
-export const Alerts = ({ alerts, handleAlerts, maxHeight }: IAlertsProps) => {
+const Alerts = ({ alerts, handleAlerts, maxHeight }: IAlertsProps) => {
 
   if (!alerts.length) return null
 
