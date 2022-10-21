@@ -38,5 +38,5 @@ export interface ISortState {
 
 type PartialRecord<K extends string | number | symbol, T> = { [P in K]?: T; }
 
-type TStylesTypes = 'all' | 'searchText' | 'counter' | 'table' | 'th' | 'td' | 'filterSelectOutline' | 'filterSelect'
+type TStylesTypes = 'all' | 'searchText' | 'counter' | 'table' | 'th' | 'tBodyTr' | 'td' | 'filterSelectOutline' | 'filterSelect'
 export type IQuickTableStyle = PartialRecord<TStylesTypes, React.CSSProperties>

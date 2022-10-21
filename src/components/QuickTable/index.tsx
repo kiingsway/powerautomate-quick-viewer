@@ -187,7 +187,7 @@ export default function QuickTable(props: IQuickTableProps) {
           {tableData.slice(propsOrDefault?.itensPerPage * (page - 1), propsOrDefault?.itensPerPage * page).map(item => {
 
             return (
-              <tr key={uuid()}>
+              <tr key={uuid()} style={props.style?.tBodyTr}>
 
                 {props.columns.filter(col => col.show === undefined || col.show === true).map(col => {
 
@@ -215,10 +215,10 @@ export default function QuickTable(props: IQuickTableProps) {
 const getPropWithString: any = (obj: any, prop: string) => {
 
   const sep = '.';
-  const propUse = prop.split(sep)[0]
-  const propRest = prop.split(sep).slice(1).join(sep)
+  const propUse = prop?.split(sep)?.[0] || ''
+  const propRest = prop?.split(sep)?.slice(1)?.join(sep) || ''
 
-  return prop.includes(sep) ? getPropWithString(obj[propUse], propRest) : obj[prop]
+  return prop.includes(sep) ? getPropWithString(obj?.[propUse], propRest) : obj?.[prop]
 
 }
 

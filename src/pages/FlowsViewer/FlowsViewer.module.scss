@@ -45,35 +45,58 @@
         }
     }
     &_Breadcrumb {
-        margin: 0;
-        flex: 0 1 40px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-        padding: 10px 16px;
-        list-style: none;
         display: flex;
+        flex-direction: row;
+        justify-content: space-between;
         align-items: center;
-        line-height: 2em;
-        font-size: 20px;
-        &_Level {
-            &0 {
-                font-weight: 500;
-                &_Link {
-                    font-weight: 400 !important;
-                    color: #7F85F5;
-                    text-decoration: none;
-                    cursor: pointer;
-                    &:hover {
-                        text-decoration: underline;
+        padding: 0 10px;
+        &_List {
+            margin: 0;
+            flex: 1 1 40px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            padding: 10px 16px;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            line-height: 2em;
+            font-size: 20px;
+            &_MenuPage {
+                &_Icon {
+                    &_Selected {
+                        color: #288CFF;
+                    }
+                }
+                &_Text {
+                    &_Selected {
+                        font-weight: 500;
+                        background-color: #333;
+                        // border: 1px solid #AAA
                     }
                 }
             }
-            &1 {
-                font-weight: 500;
+            &_Item {
+                display: flex;
+                align-items: center;
+                font-size: 18px;
+                &_0 {
+                    font-weight: 500;
+                    margin: 0;
+                    padding: 0;
+                    color: white;
+                    box-sizing: border-box;
+                    font-size: 18px;
+                    &_Link {
+                        cursor: pointer;
+                        color: #479ef5;
+                        &:hover {
+                            text-decoration: underline;
+                        }
+                    }
+                }
+                &_1 {
+                    font-weight: 500;
+                }
             }
-        }
-        & li {
-            display: inline;
-            font-size: 18px;
         }
         & li+li:before {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
@@ -87,7 +110,8 @@
             min-width: none;
             justify-content: flex-start !important;
             text-align: start !important;
-            max-width: 500px;
+            // max-width: 500px;
+            box-sizing: border-box;
         }
     }
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import styles from './Login.module.scss'
-import { IToken, IEnvironment } from '../../interfaces';
+import { IToken, IEnvironment, IHandleAlertsProps, IAlert } from '../../interfaces';
 import { Card } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import uuid from 'react-uuid';
@@ -14,7 +14,7 @@ import { BsCheckCircle } from 'react-icons/bs';
 import { IoMdClose } from 'react-icons/io';
 import { DateTime } from 'luxon';
 import { FriendlyDate } from '../../App';
-import { IAlert, IAlertMessage, IAlertsProps, IHandleAlertsProps, ILoginPageProps } from './interfaces';
+import { IAlertMessage, IAlertsProps, ILoginPageProps } from './interfaces';
 
 interface Props {
   token: IToken;
@@ -33,6 +33,7 @@ export default function Login({ token, handleToken, selectEnvironment }: Props) 
     if (add) {
       const id = add.id ? add.id : uuid();
       const intent = add.intent;
+      const createdDateTime = add.createdDateTime;
       let message: any = add.message?.response?.data?.error;
 
       if (message) {
@@ -40,7 +41,7 @@ export default function Login({ token, handleToken, selectEnvironment }: Props) 
       } else message = String(add.message);
 
       if (!alerts.find(a => a.message === message))
-        setAlerts(prev => [{ id, message, intent }, ...prev])
+        setAlerts(prev => [{ id, message, intent, createdDateTime }, ...prev])
     }
 
     if (remove) setAlerts(prev => prev.filter(a => a.id !== remove))
@@ -102,7 +103,6 @@ const LoginPage = ({ token, handleToken, handleAlerts, setEnvironments }: ILogin
     GetEnvironments(token.text)
       .then(envData => {
         const newEnvironments = envData.data.value;
-        console.log(newEnvironments[0]);
 
         if (!newEnvironments.length)
           handleAlerts({ add: { id: 'NoEnv', message: 'Nenhum ambiente encontrado nesta autenticação', intent: 'info' } })

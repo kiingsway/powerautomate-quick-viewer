@@ -7,6 +7,7 @@ export interface IFlowDetailsSummary {
   state: IFlowDetails['properties']['state'];
   flowSuspensionReason: IFlowDetails['properties']['flowSuspensionReason'];
   lastModifiedTime: IFlowDetails['properties']['lastModifiedTime'];
+  flowSuspensionTime?: IFlowDetails['properties']['flowSuspensionTime'];
   createdTime: IFlowDetails['properties']['createdTime'];
   flowFailureAlertSubscribed: IFlowDetails['properties']['flowFailureAlertSubscribed'];
   definition: any;
@@ -30,6 +31,8 @@ export interface IFlowDetailsSummary {
     references: IFlowDetails['properties']['connectionReferences'];
   };
 }
+
+
 
 export interface IFlowDetails {
   name: string
@@ -58,6 +61,7 @@ export interface IFlowDetails {
     createdTime: string
     lastModifiedTime: string
     flowSuspensionReason: string
+    flowSuspensionTime?: string
     environment: {
       name: string
       type: string
@@ -93,4 +97,145 @@ export interface IFlowDetails {
     referencedResources: any[];
     isManaged: boolean
   }
+}
+
+export interface IFlowRun {
+  name: string
+  id: string
+  type: string
+  properties: {
+    startTime: string
+    endTime: string
+    status: IFlowRunStatuses
+    code?: string
+    error?: {
+      code: string
+      message: string
+    }
+    correlation: {
+      clientTrackingId: string
+      clientKeywords?: string[]
+    }
+    trigger: {
+      name: string
+      inputsLink: {
+        uri: string
+        contentVersion: string
+        contentSize: number
+        contentHash: {
+          algorithm: string
+          value: string
+        }
+      }
+      outputsLink: {
+        uri: string
+        contentVersion: string
+        contentSize: number
+        contentHash: {
+          algorithm: string
+          value: string
+        }
+      }
+      startTime: string
+      endTime: string
+      originHistoryName: string
+      correlation: {
+        clientTrackingId: string
+        clientKeywords?: string[]
+      }
+      status: string
+      sourceHistoryName?: string
+    }
+  }
+}
+
+export type IFlowRunStatuses = 'Running' | 'Succeeded' | 'Failed' | 'Cancelled';
+
+export interface IFlowConnection {
+  name: string
+  id: string
+  type: string
+  properties: {
+    apiId: string
+    displayName: string
+    iconUri: string
+    statuses: Array<{
+      status: string
+    }>
+    connectionParameters: {
+      sku: string
+      baseResourceUrl?: string
+      "token:ResourceUri"?: string
+    }
+    createdBy: {
+      id: string
+      displayName: string
+      email: string
+      type: string
+      tenantId: string
+      userPrincipalName: string
+    }
+    createdTime: string
+    lastModifiedTime: string
+    environment: {
+      name: string
+      type: string
+      id: string
+    }
+    authenticatedUser: {
+      tenantId?: string
+      objectId?: string
+      name?: string
+    }
+    isDelegatedAuthConnection: boolean
+    expirationTime?: string
+  }
+}
+
+type FlowStatus = 'Running' | 'Succeeded' | 'Failed' | 'Cancelled';
+type BadgeColors = "subtle" | "danger" | "brand" | "important" | "informative" | "severe" | "success" | "warning";
+
+export interface IFlowSave {
+  properties: {
+    [key: string]: any;
+    displayName: string
+    definition: {
+      [key: string]: any;
+      description: string
+    }
+  }
+}
+
+export interface IFlowSave1 {
+  properties: {
+    definition: {
+      $schema: string
+      actions: any
+      parameters: any
+      triggers: any
+      contentVersion: string
+      description: string
+    }
+    connectionReferences: any
+    displayName: string
+    templateName: string
+    environment: {
+      name: string
+    }
+  }
+}
+
+import { IHandleUpdateFlowsList } from '../../FlowsViewer/interfaces';
+
+interface RunFlowToolbarProps extends ToolbarProps {
+  handleUpdateRuns: () => void;
+}
+
+interface ToolbarProps {
+  flow: IFlowDetailsSummary
+  token: IToken['text'];
+  loadingAny: boolean;
+  handleAlerts: IHandleAlerts;
+  setLoadingAny: React.Dispatch<React.SetStateAction<boolean>>;
+  handleUpdateFlowsList: IHandleUpdateFlowsList;
 }

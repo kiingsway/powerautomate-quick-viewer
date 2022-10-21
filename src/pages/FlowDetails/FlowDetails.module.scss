@@ -86,15 +86,74 @@
     }
 }
 
+.FlowInfoCard {
+    background-color: #333 !important;
+    height: 100%;
+    padding: 0 !important;
+    gap: 0 !important;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    &_Header {
+        margin: 5px 0;
+        padding: 0 10px;
+        box-sizing: border-box;
+        flex: 0 0 30px !important;
+        height: 30px !important;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        flex-direction: row;
+        justify-content: space-between;
+        &_Title {
+            line-height: 1em;
+            font-weight: 600;
+            font-size: 15px;
+        }
+        &_Divider {
+            flex: 0 0 2px !important;
+            padding: 0;
+            flex-grow: 0;
+        }
+    }
+    &_Body {
+        padding: 10px 20px;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        box-sizing: border-box;
+        &_Details {
+            &_Label {
+                font-weight: 500;
+                display: block;
+            }
+            &_Text {
+                display: flex;
+                flex-direction: row;
+                align-items: flex-start;
+                gap: 5px;
+                word-break: break-word;
+                max-height: 100px;
+                overflow: auto;
+            }
+        }
+        &_Connections {}
+        &_Links {}
+        &_Runs {}
+        &_Histories {}
+    }
+}
+
 .DetailsCard {
     background-color: #333 !important;
     // height: 100%;
     padding: 0 !important;
+    gap: 0 !important;
     display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
     align-items: start;
     justify-content: start;
-    flex-direction: column;
-    gap: 0 !important;
     &_Header {
         margin: 5px 0;
         padding: 0 10px;
@@ -122,12 +181,14 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
+        box-sizing: border-box;
         row-gap: 8px;
         &_Links {
             width: 250px;
             display: flex;
             flex-direction: row;
             justify-content: flex-start;
+            text-decoration: none;
         }
         & label {
             font-weight: 600;
@@ -143,5 +204,94 @@
     }
     &_Details_Loading {
         opacity: 0.5;
+    }
+}
+
+.Connections {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    max-height: 220px;
+    overflow: auto;
+    &_Item {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        column-gap: 13px;
+        border-radius: 4px;
+        box-sizing: border-box;
+        cursor: default;
+        padding: 10px;
+        transition: all 100ms ease-in-out;
+        &:hover {
+            transition: all 100ms ease-in-out;
+            background-color: #444;
+            &_Connections_Item_Content {
+                color: #FFF !important;
+            }
+        }
+        &:active {
+            transition: all 100ms ease-in-out;
+            background-color: #2E2E2E;
+        }
+        &_Icon {
+            & img {
+                border-radius: 4px;
+            }
+        }
+        &_Content {
+            &_Title {
+                font-weight: 500;
+                color: #DDD;
+                line-height: 1.25em;
+                padding-bottom: 1px;
+                word-break: break-all;
+            }
+            &_Subtitle {
+                color: #AAA;
+                font-size: 12px;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                line-height: 1.2em;
+            }
+        }
+    }
+    & button {
+        cursor: default !important;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+    }
+}
+
+.BlueScroll {
+    transform: 1s all;
+    /* width */
+    &::-webkit-scrollbar {
+        width: 6px !important;
+        border: 1px solid #FFFFFF55;
+        border-radius: 20px;
+        &:active {
+            border: 1px solid #FFFFFF22;
+        }
+    }
+    /* Track */
+    &::-webkit-scrollbar-track {
+        border-radius: 20px !important;
+        background: #000C1944;
+        transform: 1s all;
+    }
+    /* Handle */
+    &::-webkit-scrollbar-thumb {
+        background: #0177FF;
+        border-radius: 20px;
+    }
+    /* Handle on hover */
+    &::-webkit-scrollbar-thumb:hover {
+        background: #0260CC;
     }
 }

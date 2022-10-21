@@ -1,52 +1,29 @@
-import { Button, Spinner, Tooltip, Dialog, DialogTrigger, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, Switch, Checkbox, Link, Label, Input, Textarea } from '@fluentui/react-components';
+import { Button, Spinner, Tooltip, Dialog, DialogTrigger, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, Checkbox, Link, Label, Input, Textarea } from '@fluentui/react-components';
 import styles from './FlowToolbar.module.scss'
 import { Persona } from '@fluentui/react-components/unstable';
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BiTrash } from 'react-icons/bi';
 import { BsFillPlayFill, BsToggleOff, BsToggleOn } from 'react-icons/bs';
 import { HiOutlinePencilAlt } from 'react-icons/hi';
-import { IFlowDetails, IFlowDetailsSummary } from '../interfaces';
+import { IFlowDetailsSummary, IFlowSave, RunFlowToolbarProps, ToolbarProps } from '../interfaces';
 import classNames from 'classnames';
-import { DeleteFlow, GetConnections, GetFlowConnections, RunFlow, UpdateStateFlow } from '../../../services/requests';
-import { IToken } from '../../../interfaces';
-import { IAlert, IHandleAlerts, IHandleAlertsProps } from '../../Login/interfaces';
-import { IFlowConnection, IHandleSetFlow, IHandleUpdateFlowsList } from '../../FlowsViewer/interfaces';
-import uuid from 'react-uuid';
-import { Alerts } from '../../Login';
-// import CodeEditor from '@uiw/react-textarea-code-editor';
+import { DeleteFlow, EditFlow, GetFlowConnections, RunFlow, UpdateStateFlow } from '../../../services/requests';
+import { IHandleAlerts, IToken } from '../../../interfaces';
+import { ICloudFlow, IFlowConnection, IHandleSetFlow, IHandleUpdateFlowsList } from '../../FlowsViewer/interfaces';
+import { DateTime } from 'luxon';
 
 interface Props {
   flow: IFlowDetailsSummary;
+  token: IToken['text'];
   handleSetFlow: IHandleSetFlow;
   handleAlerts: IHandleAlerts;
-  token: IToken['text'];
   handleUpdateFlowsList: IHandleUpdateFlowsList;
+  handleUpdateRuns: () => void;
 }
 
-export default function FlowToolbar({ flow, token, handleSetFlow, handleUpdateFlowsList }: Props) {
+export default function FlowToolbar({ flow, token, handleAlerts, handleUpdateFlowsList, handleUpdateRuns }: Props) {
 
   const [loadingAny, setLoadingAny] = useState(false);
-  const [alerts, setAlerts] = useState<IAlert[]>([]);
-
-  const handleAlerts = ({ add, remove, removeAll }: IHandleAlertsProps) => {
-    if (!add && !remove && !removeAll) return
-
-    if (add) {
-      const id = add.id ? add.id : uuid();
-      const intent = add.intent;
-      let message: any = add.message?.response?.data?.error;
-
-      if (message) {
-        message = `${message?.code}: ${message?.message}`;
-      } else message = String(add.message);
-
-      setAlerts(prev => [{ id, message, intent }, ...prev])
-    }
-
-    if (remove) setAlerts(prev => prev.filter(a => a.id !== remove))
-
-    if (removeAll) setAlerts(() => [])
-  }
 
   return (
     <div className='d-flex flex-column' style={{ gap: 5 }}>
@@ -59,6 +36,7 @@ export default function FlowToolbar({ flow, token, handleSetFlow, handleUpdateFl
           setLoadingAny={setLoadingAny}
           handleAlerts={handleAlerts}
           handleUpdateFlowsList={handleUpdateFlowsList}
+          handleUpdateRuns={handleUpdateRuns}
         />
 
         <EditFlowButton
@@ -89,25 +67,11 @@ export default function FlowToolbar({ flow, token, handleSetFlow, handleUpdateFl
         />
 
       </div>
-
-      <Alerts
-        alerts={alerts}
-        handleAlerts={handleAlerts}
-        maxHeight={200} />
     </div>
   )
 }
 
-interface ToolbarProps {
-  flow: IFlowDetailsSummary
-  token: IToken['text'];
-  loadingAny: boolean;
-  handleAlerts: IHandleAlerts;
-  setLoadingAny: React.Dispatch<React.SetStateAction<boolean>>;
-  handleUpdateFlowsList: IHandleUpdateFlowsList;
-}
-
-const RunFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny }: ToolbarProps) => {
+const RunFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny, handleUpdateRuns }: RunFlowToolbarProps) => {
 
   const [runModalOpen, setRunModal] = useState(false);
   const [connections, setConnections] = useState<IFlowConnection[]>();
@@ -117,8 +81,8 @@ const RunFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny }:
     if (!flow.trigger.uri) return
 
     GetFlowConnections(token, flow.envName, flow.name)
-      .then(r => { console.log(r.data); setConnections(r.data) })
-      .catch(e => handleAlerts({ add: { message: e, intent: 'error' } }))
+      .then(r => { setConnections(r.data) })
+      .catch(e => handleAlerts({ add: { message: e, intent: 'error', createdDateTime: DateTime.now() } }))
 
   }, [])
 
@@ -130,9 +94,9 @@ const RunFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny }:
     setLoadingAny(true)
     setRunning(true)
     RunFlow(token, flow.trigger.uri)
-      .then(() => handleAlerts({ add: { message: `Fluxo "${flow.displayName}" executado`, intent: 'success' } }))
-      .catch(e => handleAlerts({ add: { message: e, intent: 'error' } }))
-      .finally(() => { setLoadingAny(false); setRunModal(false); setRunning(false) })
+      .then(() => handleAlerts({ add: { message: `Fluxo "${flow.displayName}" executado`, intent: 'success', createdDateTime: DateTime.now() } }))
+      .catch(e => handleAlerts({ add: { message: e, intent: 'error', createdDateTime: DateTime.now() } }))
+      .finally(() => { setLoadingAny(false); setRunModal(false); setRunning(false); handleUpdateRuns() })
   }
 
   const DialogRun = ({ children }: { children: JSX.Element }) => {
@@ -204,142 +168,161 @@ const RunFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny }:
 }
 
 const EditFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny, handleUpdateFlowsList }: ToolbarProps) => {
+
   const [dialogOpen, setDialog] = useState(false);
-  const [turningState, turnState] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [newFlowProps, setNewFlowProps] = useState<IFlowSave>({
+    properties: {
+      definition: {
+        ...flow.definition,
+        description: flow.description
+      },
+      displayName: flow.displayName,
+    }
+  });
 
   const handleEditFlow = () => {
     setLoadingAny(true);
-    turnState(true);
-    setDialog(false);
-    console.log([token, flow.envName, flow.name])
-    // handleUpdateFlowsList(flow.name, { edit: { title: 'new Flow Title', description: 'New Description', definition: 'New Definition' } })
-    // .then(() => handleUpdateFlowsList(flow.name, { remove: true }))
-    // .catch(e => handleAlerts({ add: { message: e, intent: 'error' } }))
-    // .finally(() => { setLoadingAny(false); turnState(false) })
+    setEditing(true)
+
+    EditFlow(token, flow.envName, flow.name, newFlowProps)
+      .then(resp => {
+        setDialog(false);
+        handleAlerts({ add: { message: 'Fluxo alterado com sucesso!', intent: 'success', createdDateTime: DateTime.now() } })
+        const newFlow = resp.data as ICloudFlow;
+        handleUpdateFlowsList(flow.name, {
+          edit: {
+            state: newFlow.properties.state,
+            title: newFlow.properties.displayName,
+            lastModifiedTime: newFlow.properties.lastModifiedTime,
+            definition: newFlow.properties.definition,
+          }
+        })
+      })
+      .catch(e => {
+        handleAlerts({ add: { message: e?.response?.data?.message ? e.response.data.message : e, intent: 'error', createdDateTime: DateTime.now() } })
+      })
+      .finally(() => { setLoadingAny(false); setEditing(false) })
   }
 
-  const DialogEdit = ({ children }: { children: JSX.Element }) => {
+  const uriFlow = `https://make.powerautomate.com/environments/${flow.envName}/flows/${flow.name}/details`;
 
-    interface draftFlow {
-      name: string;
-      desc: string;
-      def: any;
-    }
+  return (
+    <Dialog open={dialogOpen}>
+      <DialogTrigger>
 
-    const [draftFlowDetails, drawFlowDetails] = useState<draftFlow>({
-      name: flow.displayName,
-      desc: flow.description,
-      def: flow.definition
-    });
+        <Button
+          appearance='subtle'
+          onClick={() => setDialog(true)}
+          disabled={loadingAny || editing}
+          icon={editing ? <Spinner size='tiny' /> : <HiOutlinePencilAlt />}>
+          {editing ? 'Editando...' : 'Editar'}
+        </Button>
+      </DialogTrigger>
+      <DialogSurface>
+        <DialogBody>
 
-    const handleNewDetails = ({ name, desc, def }: Partial<draftFlow>) => {
-      if (name) drawFlowDetails(prev => ({ ...prev, name }))
-      if (desc) drawFlowDetails(prev => ({ ...prev, desc }))
-      if (def) drawFlowDetails(prev => ({ ...prev, def }))
+          <DialogTitle>
+            Editar fluxo <Link href={uriFlow} target='__blank'> {flow.displayName} </Link>
+          </DialogTitle>
 
-    }
+          <DialogContent>
 
+            <div className="row w-100" style={{ gap: 5 }}>
 
-
-    const uriFlow = `https://make.powerautomate.com/environments/${flow.envName}/flows/${flow.name}/details`;
-
-    return (
-      <Dialog open={dialogOpen}>
-        <DialogTrigger>
-          {children}
-        </DialogTrigger>
-        <DialogSurface>
-          <DialogBody>
-            <DialogTitle>Editar fluxo <Link href={uriFlow} target='__blank'>{flow.displayName}</Link></DialogTitle>
-            <DialogContent>
-
-              <div className="row w-100" style={{ gap: 5 }}>
-
-                <div className="col-12 mt-2">
-                  <Label htmlFor="txtFlowDisplayName">Nome:</Label>
-                </div>
-
-                <div className="col-12">
-                  <Input
-                    value={draftFlowDetails.name}
-                    onChange={e => handleNewDetails({ name: e.target.value })}
-                    id="txtFlowDisplayName"
-                    className='w-100'
-                    defaultValue={flow.displayName} />
-                </div>
-
-                <div className="col-12 mt-3">
-                  <Label htmlFor="txtFlowDescription">Descrição:</Label>
-                </div>
-
-                <div className="col-12">
-                  <Textarea
-                    textarea={{ style: { height: 150 }, className: styles.BlueScroll }}
-                    id="txtFlowDescription"
-                    className={classNames('w-100')}
-                    defaultValue={flow.description} />
-                </div>
-
-                <div className="col-12 mt-3">
-                  <Label htmlFor='txtFlowDefinition'>Definição <span style={{ fontSize: 11 }}>(A descrição do fluxo é considerado no campo Descrição acima)</span>:</Label>
-                </div>
-
-                <div className="col-12">
-                  <Textarea
-                    textarea={{ style: { height: 150 }, className: styles.BlueScroll }}
-                    id="txtFlowDescription"
-                    className={classNames('w-100')}
-                    defaultValue={JSON.stringify(flow.definition, null, 2)} />
-
-                  {/* <CodeEditor
-                    value={JSON.stringify(flow.definition, null, 2)}
-                    language="json"
-                    placeholder="Please enter JS code."
-                    // onChange={(evn) => setCode(evn.target.value)}
-                    padding={15}
-                    className={styles.BlueScroll}
-                    style={{
-                      height: 300,
-                      overflow: 'auto',
-                      boxSizing: 'border-box',
-                      fontSize: 12,
-                      fontFamily: 'ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace',
-                    }}
-                  /> */}
-                </div>
+              <div className="col-12 mt-2">
+                <Label htmlFor="txtFlowDisplayName">Nome:</Label>
               </div>
 
-            </DialogContent>
-            <DialogActions>
-              <DialogTrigger>
-                <Button appearance="secondary" onClick={() => setDialog(false)}>
-                  Fechar
-                </Button>
-              </DialogTrigger>
-              <Button
-                icon={turningState ? <Spinner size='tiny' /> : null}
-                disabled={loadingAny || turningState}
-                appearance="primary"
-              // onClick={() => handleTurnOnOffFlow(isFlowOn ? 'turnOff' : 'turnOn')}
-              >
+              <div className="col-12">
+                <Input
+                  maxLength={255}
+                  disabled={editing}
+                  value={newFlowProps.properties.displayName}
+                  onChange={e => setNewFlowProps(prev => ({
+                    ...prev,
+                    properties: {
+                      ...prev.properties,
+                      displayName: e.target.value
+                    }
+                  }))}
+                  id="txtFlowDisplayName"
+                  className='w-100'
+                  defaultValue={flow.displayName} />
+              </div>
 
+              <div className="col-12 mt-3">
+                <Label htmlFor="txtFlowDescription">Descrição:</Label>
+              </div>
+
+              <div className="col-12">
+                <Textarea
+                  maxLength={1023}
+                  disabled={editing}
+                  className={classNames('w-100')}
+                  id="txtFlowDescription"
+                  textarea={{ style: { height: 150 }, className: styles.BlueScroll }}
+                  value={newFlowProps.properties.definition.description}
+                  onChange={e => setNewFlowProps(prev => ({
+                    ...prev,
+                    properties: {
+                      ...prev.properties,
+                      definition: {
+                        ...prev.properties.definition,
+                        description: e.target.value,
+                      }
+                    }
+                  }))}
+                />
+              </div>
+
+              <div className="col-12 mt-3">
+                <Label htmlFor='txtFlowDefinition'>Definição <span style={{ fontSize: 11 }}>(A descrição do fluxo é considerado no campo Descrição acima)</span>:</Label>
+              </div>
+
+              <div className="col-12">
+                <Textarea
+                  disabled={editing}
+                  textarea={{ style: { height: 150 }, className: styles.BlueScroll }}
+                  id="txtFlowDescription"
+                  className={classNames('w-100')}
+                  value={JSON.stringify(newFlowProps.properties.definition, null, 2)}
+                  onChange={e => setNewFlowProps(prev => {
+                    if (!isJsonString(e.target.value)) return prev
+                    return {
+                      ...prev,
+                      properties: {
+                        ...prev.properties,
+                        definition: {
+                          ...JSON.parse(e.target.value),
+                          description: prev.properties.definition.description,
+                        }
+                      }
+                    }
+                  })}
+                />
+              </div>
+            </div>
+
+          </DialogContent>
+          <DialogActions>
+            <DialogTrigger>
+              <Button appearance="secondary" onClick={() => setDialog(false)}>
+                Fechar
               </Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-    )
-  }
-  return (
-    <DialogEdit>
-      <Button
-        appearance='subtle'
-        onClick={() => setDialog(true)}
-        disabled={loadingAny || turningState}
-        icon={turningState ? <Spinner size='tiny' /> : <HiOutlinePencilAlt />}>
-        {turningState ? 'Editando...' : 'Editar'}
-      </Button>
-    </DialogEdit>
+            </DialogTrigger>
+            <Button
+              icon={editing ? <Spinner size='tiny' /> : null}
+              disabled={loadingAny || editing}
+              appearance="primary"
+              onClick={handleEditFlow}
+            >
+              Editar
+            </Button>
+          </DialogActions>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
   )
 }
 
@@ -353,8 +336,14 @@ const TurnFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny, 
     turnState(true);
     setDialog(false);
     UpdateStateFlow(token, flow.envName, flow.name, turn)
-      .then(() => handleUpdateFlowsList(flow.name, { edit: { state: turn === 'turnOn' ? 'Started' : 'Stopped' } }))
-      .catch(e => handleAlerts({ add: { message: e, intent: 'error' } }))
+      .then(() => {
+        handleUpdateFlowsList(flow.name, {
+          edit: {
+            state: turn === 'turnOn' ? 'Started' : 'Stopped'
+          }
+        })
+      })
+      .catch(e => handleAlerts({ add: { message: e, intent: 'error', createdDateTime: DateTime.now() } }))
       .finally(() => { setLoadingAny(false); turnState(false) })
   }
 
@@ -416,13 +405,14 @@ const DeleteFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny
     setDialog(false);
     DeleteFlow(token, flow.envName, flow.name)
       .then(() => handleUpdateFlowsList(flow.name, { remove: true }))
-      .catch(e => handleAlerts({ add: { message: e, intent: 'error' } }))
+      .catch(e => handleAlerts({ add: { message: e, intent: 'error', createdDateTime: DateTime.now() } }))
       .finally(() => { setLoadingAny(false); turnState(false) })
   }
 
   const DialogDelete = ({ children }: { children: JSX.Element }) => {
+
     const [confirm, setConfirm] = useState(false);
-    const handleConfirm = (e: any) => console.log(e.target.value)
+
     return (
       <Dialog open={dialogOpen}>
         <DialogTrigger>
@@ -465,6 +455,7 @@ const DeleteFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny
       </Dialog>
     )
   }
+
   return (
     <DialogDelete>
       <Button
@@ -476,4 +467,13 @@ const DeleteFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny
       </Button>
     </DialogDelete>
   )
+}
+
+function isJsonString(str: string) {
+  try {
+    JSON.parse(str);
+  } catch (e) {
+    return false;
+  }
+  return true;
 }

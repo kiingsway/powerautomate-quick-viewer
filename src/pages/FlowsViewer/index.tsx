@@ -1,19 +1,24 @@
-import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger } from '@fluentui/react-components';
+import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, MenuItemRadio } from '@fluentui/react-components';
 import { Persona } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react'
-import { BsFillPersonFill, BsPeopleFill } from 'react-icons/bs';
+import { BiArrowBack, BiChevronDown } from 'react-icons/bi';
+import { RiPlayList2Line } from 'react-icons/ri';
+import { BsFillPersonFill, BsPeopleFill, BsTrash } from 'react-icons/bs';
+import { VscDebugDisconnect } from 'react-icons/vsc';
 import uuid from 'react-uuid';
 import { FriendlyDate } from '../../App';
 import QuickTable, { IQuickTableColumnDefinition, IQuickTableStyleDefinition } from '../../components/QuickTable';
-import { IEnvironment, IJwt, IToken } from '../../interfaces';
+import { IAlert, IEnvironment, IHandleAlertsProps, IJwt, IToken } from '../../interfaces';
 import { GetFlow, GetFlows } from '../../services/requests';
 import FlowDetails from '../FlowDetails';
+import FlowsRecycleBin from '../FlowsRecycleBin';
 import { Alerts } from '../Login';
-import { IAlert, IHandleAlertsProps } from '../Login/interfaces';
 import styles from './FlowsViewer.module.scss'
-import { IFlow, IHandleSetFlow, IHandleUpdateFlowsList, ISharedType } from './interfaces';
+import { AppPages, IAppPage, IBreadcrumbProps, IFlow, IHandleSetFlow, IHandleUpdateFlowsList, IHeaderAppProps, IMainTableProps, ISharedType } from './interfaces';
+import Connections from '../Connections';
+import AppAlerts from '../../components/AppAlerts';
 
 interface Props {
   token: IToken;
@@ -28,7 +33,9 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
   const [loadingFlows, setLoadingFlows] = useState<Record<ISharedType, boolean>>({ personal: false, team: false });
   const [obtainedFlows, setObtainedFlows] = useState<Record<ISharedType, DateTime | null>>({ personal: null, team: null });
   const [alerts, setAlerts] = useState<IAlert[]>([]);
-  const [flows, setFlows] = useState<IFlow[]>([])
+  const [flows, setFlows] = useState<IFlow[]>();
+  const [page, setPage] = useState<AppPages>('FlowLists');
+
 
 
   const handleAlerts = ({ add, remove, removeAll }: IHandleAlertsProps) => {
@@ -37,6 +44,7 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
     if (add) {
       const id = add.id ? add.id : uuid();
       const intent = add.intent;
+      const createdDateTime = add.createdDateTime;
       let message: any = add.message?.response?.data?.error;
 
       if (message) {
@@ -44,7 +52,7 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
       } else message = String(add.message);
 
       if (!alerts.find(a => a.message === message))
-        setAlerts(prev => [{ id, message, intent }, ...prev])
+        setAlerts(prev => [{ id, message, intent, createdDateTime }, ...prev])
     }
 
     if (remove) setAlerts(prev => prev.filter(a => a.id !== remove))
@@ -57,47 +65,64 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
     action: {
       remove?: boolean,
       edit?: {
-        state?: 'Started' | 'Stopped';
+        state?: 'Started' | 'Stopped' | 'Suspended';
         title?: string;
-        description?: string;
+        lastModifiedTime?: string;
         definition?: any;
       }
-    }
-  ) => {
-
+    }) => {
     if (!action.edit && !action.remove) return
-
     if (action.remove) {
-      setFlows(prev => prev.filter(f => f.name !== flowName));
+      setFlows(prev => prev ? prev.filter(f => f.name !== flowName) : prev);
       selectFlow(null)
       return
     }
-
     if (action.edit) {
-      if (action.edit.state)
-        setFlows(prev => {
-          let flows = prev;
-          const indexToUpdate = flows.map(f => f.name).indexOf(flowName);
+      setFlows(prevFlows => {
+        if (!prevFlows) return undefined
 
-          let flow = flows[indexToUpdate];
+        let flows = prevFlows;
+        const indexToUpdate = flows.map(f => f.name).indexOf(flowName);
 
-          flow.properties.state = action.edit?.state === 'Started' ? 'Ativado' : 'Parado';
-          flows[indexToUpdate] = flow;
-          selectFlow(prev => {
+        const statesBr = {
+          Started: 'Ativado',
+          Suspended: 'Suspenso',
+          Stopped: 'Parado'
+        }
 
-            if (!prev) return prev;
+        const state = action.edit?.state ? action.edit.state : flows[indexToUpdate].properties.state;
+        const displayName = action.edit?.title ? action.edit.title : flows[indexToUpdate].properties.displayName;
+        const definition = action.edit?.definition ? action.edit.definition : flows[indexToUpdate].properties.definition;
 
-            return {
-              ...prev,
-              properties: {
-                ...prev.properties,
-                state: prev.properties.state === 'Started' ? 'Stopped' : 'Started'
-              }
+        const flowToUpdate = {
+          ...flows[indexToUpdate],
+          properties: {
+            ...flows[indexToUpdate].properties,
+            state,
+            displayName,
+            definition,
+          }
+        };
+
+        flows[indexToUpdate] = flowToUpdate;
+
+        selectFlow(prevFlow => {
+
+          if (!prevFlow || prevFlow?.name !== flowToUpdate.name) return prevFlow
+          else return {
+            ...prevFlow,
+            properties: {
+              ...prevFlow.properties,
+              definition: flowToUpdate.properties.definition ? flowToUpdate.properties.definition : prevFlow.properties.definition,
+              displayName: flowToUpdate.properties.displayName ? flowToUpdate.properties.displayName : prevFlow.properties.displayName,
+              state: flowToUpdate.properties.state ? flowToUpdate.properties.state : prevFlow.properties.state
             }
-          })
-          console.log(selectedFlow?.properties.state)
-          return flows
-        });
+          }
+        })
+
+        return flows;
+
+      });
       return
     }
 
@@ -113,7 +138,7 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
     setLoadingFlow(true)
 
     return GetFlow(token.text, selectedEnvironment.name, flowName)
-      .catch(e => handleAlerts({ add: { message: e, intent: 'error' } }))
+      .catch(e => handleAlerts({ add: { message: e, intent: 'error', createdDateTime: DateTime.now() } }))
       .then(flowData => {
         selectFlow(flowData?.data)
       })
@@ -122,7 +147,7 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
   }
 
   const handleGetFlows = (sharedType: ISharedType, force?: boolean) => {
-    if (flows.length && !force) return
+    if (flows && flows.length && !force) return
     setLoadingFlows(prev => ({ ...prev, [sharedType]: true }))
 
     GetFlows(token.text, selectedEnvironment.name, sharedType)
@@ -173,7 +198,10 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
         newFlows = newFlows.map(f => (
           {
             ...f,
-            properties: { ...f.properties, state: states[f.properties.state as keyof typeof states] },
+            properties: {
+              ...f.properties,
+              state: states[f.properties.state as keyof typeof states]
+            },
             ambiente: getAmbienteFlow(f.properties.displayName),
             cliente: getClienteFlow(f.properties.displayName),
             sharedType: sharedType === 'personal' || sharedType === 'team' ? sharedTypes[sharedType] : sharedType
@@ -181,12 +209,18 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
         ))
 
         const uniqueNewFlows = Array.from(new Map(newFlows.map(item => [item.name, item])).values());
-        setFlows(prev => [...uniqueNewFlows, ...prev.filter(f => f.sharedType !== sharedTypes[sharedType])]);
+        setFlows(prev => {
+          const prevFlows = prev ? prev : []
+          return [
+            ...uniqueNewFlows,
+            ...prevFlows.filter(f => f.sharedType !== sharedTypes[sharedType])
+          ]
+        });
         setObtainedFlows(prev => ({ ...prev, [sharedType]: DateTime.now() }))
 
       })
       .catch(e => {
-        handleAlerts({ add: { message: e, intent: 'error' } });
+        handleAlerts({ add: { message: e, intent: 'error', createdDateTime: DateTime.now() } });
         setObtainedFlows(prev => ({ ...prev, [sharedType]: null }))
       })
       .finally(() => {
@@ -194,6 +228,8 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
       })
 
   }
+
+  useEffect(() => handleGetFlows('personal', true), [])
 
   return (
     <div className={styles.Viewer}>
@@ -204,44 +240,50 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
       />
 
       <Breadcrumb
+        page={page}
+        setPage={setPage}
         handleSetFlow={handleSetFlow}
         selectedFlow={selectedFlow}
       />
 
-      <Alerts
+      <AppAlerts
         alerts={alerts}
-        handleAlerts={handleAlerts}
-        maxHeight={200} />
+        handleAlerts={handleAlerts} />
 
       <LoadingScreen open={loadingFlow} />
 
-      {selectedFlow ?
-        <FlowDetails
-          handleAlerts={handleAlerts}
-          handleSetFlow={handleSetFlow}
-          handleUpdateFlowsList={handleUpdateFlowsList}
-          selectedFlow={selectedFlow}
-          token={token.text}
-        /> : null}
+      {page === 'Connections' ? <Connections
+        token={token.text}
+        handleAlerts={handleAlerts}
+        selectedEnvironment={selectedEnvironment} /> : null}
+
+      {page === 'RecycleBin' ? <FlowsRecycleBin
+        handleAlerts={handleAlerts}
+        selectedEnvironment={selectedEnvironment}
+        token={token.text} /> : null}
+
+      {page === 'FlowLists' ? (
+        selectedFlow ?
+          <FlowDetails
+            token={token.text}
+            selectedFlow={selectedFlow}
+            handleAlerts={handleAlerts}
+            handleSetFlow={handleSetFlow}
+            handleUpdateFlowsList={handleUpdateFlowsList}
+          /> :
+          <MainTable
+            flows={flows ? flows : []}
+            loadingFlows={loadingFlows}
+            obtainedFlows={obtainedFlows}
+            handleSetFlow={handleSetFlow}
+            handleGetFlows={handleGetFlows}
+          />
+      ) : null}
 
       <div className={classNames({ "d-none": selectedFlow })}>
-        <MainTable
-          flows={flows}
-          handleSetFlow={handleSetFlow}
-          loadingFlows={loadingFlows}
-          handleGetFlows={handleGetFlows}
-          obtainedFlows={obtainedFlows}
-        />
       </div>
-
     </div>
   )
-}
-
-interface IHeaderAppProps {
-  jwt: IJwt;
-  env: IEnvironment;
-  handleLogout: () => void
 }
 
 const HeaderApp = ({ env, handleLogout, jwt }: IHeaderAppProps) => {
@@ -345,41 +387,108 @@ const HeaderApp = ({ env, handleLogout, jwt }: IHeaderAppProps) => {
 
 }
 
-interface IBreadcrumbProps {
-  handleSetFlow: (flowName: IFlow['name'] | null) => void;
-  selectedFlow: IFlow | null;
-}
+const Breadcrumb = ({ handleSetFlow, selectedFlow, page, setPage }: IBreadcrumbProps) => {
 
-const Breadcrumb = ({ handleSetFlow, selectedFlow }: IBreadcrumbProps) => (
-  <ul className={styles.Viewer_Breadcrumb}>
-    <li>
-      <span
-        className={classNames(
-          styles.Viewer_Breadcrumb_Level0,
-          { [styles.Viewer_Breadcrumb_Level0_Link]: Boolean(selectedFlow?.name) }
-        )}
-        onClick={() => handleSetFlow(null)}
-      >
-        Fluxos
-      </span>
-    </li>
+  const appPagesTitles: Record<AppPages, string> = {
+    Connections: "Conexões",
+    FlowLists: "Fluxos",
+    RecycleBin: "Lixeira"
+  }
+
+  const appPagesDef: IAppPage[] = [
     {
-      selectedFlow?.name ?
-        <li>
-          <span className={classNames(styles.Viewer_Breadcrumb_Level1)}>
-            {selectedFlow?.properties?.displayName}
-          </span>
-        </li> : null
+      title: appPagesTitles['FlowLists'],
+      page: 'FlowLists',
+      icon: <RiPlayList2Line className={classNames(
+        { [styles.Viewer_Breadcrumb_List_MenuPage_Icon_Selected]: page === 'FlowLists' }
+      )} />
+    },
+    {
+      title: appPagesTitles['Connections'],
+      page: 'Connections',
+      icon: <VscDebugDisconnect className={classNames(
+        { [styles.Viewer_Breadcrumb_List_MenuPage_Icon_Selected]: page === 'Connections' }
+      )} />
+    },
+    {
+      title: appPagesTitles['RecycleBin'],
+      page: 'RecycleBin',
+      hide: true,
+      icon: <BsTrash className={classNames(
+        { [styles.Viewer_Breadcrumb_List_MenuPage_Icon_Selected]: page === 'RecycleBin' }
+      )} />
     }
-  </ul>
-)
+  ]
 
-interface IMainTableProps {
-  flows: IFlow[];
-  handleSetFlow: (flowName: IFlow['name'] | null) => void;
-  loadingFlows: Record<ISharedType, boolean>;
-  handleGetFlows: (sharedType: ISharedType, force?: boolean) => void;
-  obtainedFlows: Record<ISharedType, DateTime | null>;
+  return (
+    <div className={styles.Viewer_Breadcrumb}>
+      <ul className={styles.Viewer_Breadcrumb_List}>
+        <li className={styles.Viewer_Breadcrumb_List_Item}>
+
+
+          <div className='d-flex flex-row align-items-center'>
+            <span
+              className={classNames(
+                styles.Viewer_Breadcrumb_List_Item_0,
+                { [styles.Viewer_Breadcrumb_List_Item_0_ChangeScreen]: !selectedFlow?.name },
+                { [styles.Viewer_Breadcrumb_List_Item_0_Link]: Boolean(selectedFlow?.name) },
+              )}
+              onClick={() => handleSetFlow(null)}>
+
+              {appPagesTitles[page]}
+
+            </span>
+            {!selectedFlow?.name ?
+
+              <Menu>
+                <MenuTrigger>
+                  <Button icon={<BiChevronDown />} appearance='subtle' className='ms-2' />
+                </MenuTrigger>
+
+                <MenuPopover>
+                  <MenuList>
+                    {appPagesDef.filter(a => !a.hide).map(p => {
+                      return (
+                        <MenuItem
+                          key={p.page}
+                          icon={p.icon}
+                          onClick={() => setPage(p.page)}
+                          className={classNames(
+                            styles.Viewer_Breadcrumb_List_MenuPage,
+                            { [styles.Viewer_Breadcrumb_List_MenuPage_Text_Selected]: page === p.page },
+                          )}>
+                          {p.title}
+                        </MenuItem>
+                      )
+                    })}
+                  </MenuList>
+                </MenuPopover>
+              </Menu> : <></>}
+          </div>
+
+        </li>
+        {
+          selectedFlow?.name ?
+            <li>
+
+              <span className={classNames(styles.Viewer_Breadcrumb_List_Item_1)}>
+                {selectedFlow?.properties?.displayName}
+              </span>
+
+            </li> : null
+        }
+      </ul>
+      {
+        selectedFlow?.name ?
+          <Button
+            icon={<BiArrowBack />}
+            onClick={() => handleSetFlow(null)}
+            appearance='transparent'>
+            Voltar
+          </Button> : null
+      }
+    </div>
+  )
 }
 
 const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows, flows }: IMainTableProps) => {
@@ -428,12 +537,15 @@ const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows,
       acessor: 'properties.displayName',
       filterable: false,
       render: (value: any, item: any) => (
-        <Button
-          onClick={() => handleSetFlow(item.name)}
-          className={classNames(styles.Viewer_Table_BtnSelectFlow, 'w-100')}
-          appearance='subtle'>
-          {value}
-        </Button>)
+        <div className='px-4'>
+          <Button
+            onClick={() => handleSetFlow(item.name)}
+            className={classNames(styles.Viewer_Table_BtnSelectFlow, 'w-100')}
+            appearance='subtle'>
+            {value}
+          </Button>
+        </div>
+      )
 
     },
     {
@@ -469,8 +581,6 @@ const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows,
     }
   ]
 
-  useEffect(() => handleGetFlows('personal', true), [])
-
   return (
     <div className='ps-2 mt-2'>
       <CompoundButton
@@ -492,7 +602,8 @@ const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows,
         icon={isLoadingTeamFlows ? <Spinner size='small' /> : <BsPeopleFill />}>
         {obtainedFlows.team ? (isLoadingTeamFlows ? 'Atualizando...' : 'Atualizar') : (isLoadingTeamFlows ? 'Obtendo' : 'Obter')} fluxos compartilhados
       </CompoundButton>
-      {flows?.length ?
+      {flows && !flows.length && !isLoadingPersonalFlows ? 'Nenhum fluxo encontrado neste ambiente.' : null}
+      {flows && flows.length ?
         <div className={styles.FadeIn}>
           <QuickTable
             style={tableStyle}
@@ -541,8 +652,9 @@ export const tableStyle: IQuickTableStyleDefinition = {
     fontWeight: 500
   },
   td: {
-    padding: '10px',
-    borderBottom: '1px solid #555'
+    padding: '5px 0',
+    borderBottom: '1px solid #555',
+    verticalAlign: 'middle'
   }
 }
 

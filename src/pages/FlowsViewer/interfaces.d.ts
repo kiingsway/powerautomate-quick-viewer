@@ -29,6 +29,7 @@ export interface ICloudFlow {
     createdTime: string
     lastModifiedTime: string
     flowSuspensionReason: string
+    flowSuspensionTime?: string
     environment: {
       name: string
       type: string
@@ -74,7 +75,7 @@ export type IHandleUpdateFlowsList = (flowName: IFlow['name'], action: {
   edit?: {
     state?: 'Started' | 'Stopped';
     title?: string;
-    description?: string;
+    lastModifiedTime?: string;
     definition?: any;
   };
 }) => void
@@ -116,4 +117,34 @@ export interface IFlowConnection {
     }
     isDelegatedAuthConnection: boolean
   }
+}
+
+export interface IHeaderAppProps {
+  jwt: IJwt;
+  env: IEnvironment;
+  handleLogout: () => void
+}
+
+type AppPages = 'FlowLists' | 'Connections' | 'RecycleBin';
+
+export interface IAppPage {
+  title: string,
+  page: AppPages,
+  icon: JSX.Element
+  hide?: boolean;
+}
+
+export interface IBreadcrumbProps {
+  handleSetFlow: (flowName: IFlow['name'] | null) => void;
+  selectedFlow: IFlow | null;
+  page: AppPages;
+  setPage: React.Dispatch<React.SetStateAction<AppPages>>;
+}
+
+export interface IMainTableProps {
+  flows: IFlow[];
+  handleSetFlow: (flowName: IFlow['name'] | null) => void;
+  loadingFlows: Record<ISharedType, boolean>;
+  handleGetFlows: (sharedType: ISharedType, force?: boolean) => void;
+  obtainedFlows: Record<ISharedType, DateTime | null>;
 }

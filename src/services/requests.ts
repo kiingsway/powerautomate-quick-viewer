@@ -30,6 +30,16 @@ export function GetFlows(token: string, environmentName: string, sharedType: 'pe
     return axios.get(uri, opt)
 }
 
+export const EditFlow = (token: string, environmentName: string, flowName: string, newDefinition: any) => {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01&$expand=swagger,properties.connectionreferences.apidefinition,properties.definitionSummary.operations.apiOperation,operationDefinition,plan,properties.throttleData,properties.estimatedsuspensiondata`;
+    const opt = {
+        headers: { 'Accept': 'application/json', 'authorization': token }
+    }
+
+    return axios.patch(uri, newDefinition, opt)
+}
+
 export const UpdateStateFlow = (token: string, environmentName: string, flowName: string, turn: 'turnOn' | 'turnOff') => {
 
     const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/${turn === 'turnOff' ? 'stop' : 'start'}?api-version=2016-11-01&$expand=properties.flowTriggerUri`;
@@ -49,6 +59,7 @@ export const DeleteFlow = (token: string, environmentName: string, flowName: str
 
     return axios.delete(uri, opt)
 }
+
 export const GetFlow = (token: string, environmentName: string, flowName: string) => {
 
     const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01&$expand=definition,connectionReferences,properties.flowTriggerUri`;
@@ -58,6 +69,7 @@ export const GetFlow = (token: string, environmentName: string, flowName: string
 
     return axios.get(uri, opt)
 }
+
 export const GetFlowRuns = (token: string, environmentName: string, flowName: string) => {
 
     const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/runs?api-version=2016-11-01`;
@@ -67,6 +79,7 @@ export const GetFlowRuns = (token: string, environmentName: string, flowName: st
 
     return axios.get(uri, opt)
 }
+
 export const GetFlowHistories = (token: string, environmentName: string, flowName: string, trigger: string) => {
 
     const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/triggers/${trigger}/histories?&expand=properties&api-version=2016-11-01`;
@@ -125,18 +138,57 @@ export function GetFlowConnections(token: string, environmentName: string, flowN
     return axios.get(uri, opt as any)
 }
 
-export const GetConnections = (token: string) => {
-    const uri = `https://unitedstates.api.powerapps.com/api/invoke?api-version=2021-02-01`
+export const TryGetConnections = async (token: string, environmentName: string) => {
+    const userId = '000a00a0-00a0-0a00-aa00-aa0a00aaa0';
+    const uri = `https://unitedstates.api.powerapps.com/api/invoke`;
     const opt = {
-        headers: { Accept: 'application/json', Authorization: token, ['x-ms-path-query']: "providers/Microsoft.PowerApps/connections?%24expand=permissions(%24filter%3dmaxAssignedTo(%27a1c0382b-9056-425c-96d5-e0dad70c2898%27))&%24filter=environment+eq+%27Default-a8b027e9-7f32-430c-97c4-47dd7af95c70%27+and+ApiId+not+in+(%27shared_logicflows%27%2c%27shared_powerflows%27)&api-version=2020-06-01&%24skiptoken=eyJmYWlsdXJlRm91bmQiOmZhbHNlLCJsYXN0UmVnaXN0cmF0aW9uU2VlbiI6InNoYXJlZCIsImxhc3RDb250aW51YXRpb25Ub2tlblNlZW4iOiJleUpRU3lJNklqRWhPQ0ZSVkdzelRWUlZMU0lzSWxKTElqb2lNU0V5TlRJaFVWUm9RMDFFU1ROU1ZHczJUV3RSTTFKcVRYbFBha3BGVGtSTmQxRjZiM2xTUkdzelVYcFJOazFyVVRCT01GSkZUakJHUjA5VVZrUk9la0ptVlVWR1JGUnBNVUpOVlUxM1RYcG5lVkZxYjNsU1JHdDNUbFJaTmsxclVUQk5hbFpFVDJwS1JVOVVXa1ZPVkc5NVVrVlZkMUpGUmtWT2VrSkVUV3BuTlU5RE1VNVZNREZDVkd0R1NGSlZVVFpOYTFKUFVWTXhVRkpyV2twUk1GVjZUbXBWZEZVd2FFSlZhMVpGVDJwS1JWUXdXa2RUVlU1R1RYcFpNVTlxU2tWTmFrWkdVWHBCTWxKRVFUWk5hMUpHVWxSSk1rOXFTa1ZPUkdoQ1RVUnZlVkpFYXpWTlZWRTJUV3RTUmxKVldrVlBha3BGVGtWSk1rNUZSa2RPZW1jdElpd2lUMGxFSWpvaVlURmpNRE00TW1JdE9UQTFOaTAwTWpWakxUazJaRFV0WlRCa1lXUTNNR015T0RrNElpd2lVeUk2SWs1dmRGTmxkQ0o5In0%3d&%24paginationId=76e736f1-e4e7-4ba8-8453-6fbc666ed8de" }
+        headers: {
+            Accept: 'application/json',
+            Authorization: token,
+            ['x-ms-path-query']: `providers/Microsoft.PowerApps/connections?$expand=permissions($filter=maxAssignedTo('${userId}'))&$filter=environment eq '${environmentName}' and ApiId not in ('shared_logicflows','shared_powerflows')&api-version=2020-06-01&$top=999`
+        }
     }
-    const opt1 = {
-        headers: { Accept: 'application/json', Authorization: token, ['x-ms-path-query']: "providers/Microsoft.PowerApps/connections" }
+    return axios.get(uri, opt)
+
+}
+
+export const GetConnections = async (token: string, environmentName: string, userId: string) => {
+
+    const uri = `https://unitedstates.api.powerapps.com/api/invoke`;
+    const opt = {
+        headers: {
+            Accept: 'application/json',
+            Authorization: token,
+            ['x-ms-path-query']: `providers/Microsoft.PowerApps/connections?$expand=permissions($filter=maxAssignedTo('${userId}'))&$filter=environment eq '${environmentName}' and ApiId not in ('shared_logicflows','shared_powerflows')&api-version=2020-06-01&$top=999`
+        }
     }
+    return axios.get(uri, opt)
+
+}
+
+export const GetConnectionsNames = async (token: string, environmentName: string, userId: string) => {
+
+    const uri = `https://unitedstates.api.powerapps.com/api/invoke`;
+    const opt = {
+        headers: {
+            Accept: 'application/json',
+            Authorization: token,
+            ['x-ms-path-query']: `/providers/Microsoft.PowerApps/apis?showApisWithToS=true&$expand=permissions($filter=maxAssignedTo('${userId}'))&$filter=environment eq '${environmentName}'&api-version=2020-06-01`
+        }
+    }
+    return axios.get(uri, opt)
+
 }
 
 export const GetWithNextLink = (token: string, nextLink: string) => {
 
     opt.headers.Authorization = token;
     return axios.get(nextLink, opt as any)
+}
+
+export const GetDeletedFlows = (token: string, environmentName: string) => {
+
+    const uri = `https://us.api.flow.microsoft.com/providers/Microsoft.ProcessSimple/environments/${environmentName}/flows?$top=50&include=includeDeletedFlows&api-version=2016-11-01`;
+    opt.headers.Authorization = token;
+    return axios.get(uri, opt as any)
 }

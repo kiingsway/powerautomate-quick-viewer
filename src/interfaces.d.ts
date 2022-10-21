@@ -1,3 +1,5 @@
+import { DateTime } from "luxon";
+
 export type IGetJwt = (token: string) => IJwt | null;
 
 export interface IToken {
@@ -65,4 +67,24 @@ export interface IEnvironment {
       protectionLevel: string
     }
   }
+}
+
+type IHandleAlerts = ({ add, remove, removeAll }: IHandleAlertsProps) => void;
+
+interface IHandleAlertsProps {
+  add?: {
+      id?: string;
+      message: any;
+      intent: IAlert['intent'];
+      createdDateTime: DateTime;
+    }
+    remove?: string;
+    removeAll?: boolean;
+  }
+  
+  export interface IAlert {
+    id: string;
+    message: string;
+    intent: 'error' | 'warning' | 'info' | 'success'
+    createdDateTime: DateTime;
 }
