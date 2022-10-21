@@ -30,6 +30,16 @@ export function GetFlows(token: string, environmentName: string, sharedType: 'pe
     return axios.get(uri, opt)
 }
 
+export const EditFlow = (token: string, environmentName: string, flowName: string, newDefinition: any) => {
+
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01&$expand=swagger,properties.connectionreferences.apidefinition,properties.definitionSummary.operations.apiOperation,operationDefinition,plan,properties.throttleData,properties.estimatedsuspensiondata`;
+    const opt = {
+        headers: { 'Accept': 'application/json', 'authorization': token }
+    }
+
+    return axios.patch(uri, newDefinition, opt)
+}
+
 export const UpdateStateFlow = (token: string, environmentName: string, flowName: string, turn: 'turnOn' | 'turnOff') => {
 
     const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/${turn === 'turnOff' ? 'stop' : 'start'}?api-version=2016-11-01&$expand=properties.flowTriggerUri`;
@@ -49,15 +59,17 @@ export const DeleteFlow = (token: string, environmentName: string, flowName: str
 
     return axios.delete(uri, opt)
 }
+
 export const GetFlow = (token: string, environmentName: string, flowName: string) => {
 
-    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01&$expand=definition,properties.flowTriggerUri`;
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}?api-version=2016-11-01&$expand=definition,connectionReferences,properties.flowTriggerUri`;
     const opt = {
         headers: { 'Accept': 'application/json', 'authorization': token }
     }
 
     return axios.get(uri, opt)
 }
+
 export const GetFlowRuns = (token: string, environmentName: string, flowName: string) => {
 
     const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/runs?api-version=2016-11-01`;
@@ -67,6 +79,7 @@ export const GetFlowRuns = (token: string, environmentName: string, flowName: st
 
     return axios.get(uri, opt)
 }
+
 export const GetFlowHistories = (token: string, environmentName: string, flowName: string, trigger: string) => {
 
     const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/triggers/${trigger}/histories?&expand=properties&api-version=2016-11-01`;
@@ -120,8 +133,62 @@ export const ResubmitFlowRun = (token: string, environmentName: string, flowName
 
 export function GetFlowConnections(token: string, environmentName: string, flowName: string) {
 
-    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/connections?` +
-        'api-version=2016-11-01';
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows/${flowName}/connections?api-version=2016-11-01`;
+    opt.headers.Authorization = token;
+    return axios.get(uri, opt as any)
+}
+
+export const TryGetConnections = async (token: string, environmentName: string) => {
+    const userId = '000a00a0-00a0-0a00-aa00-aa0a00aaa0';
+    const uri = `https://unitedstates.api.powerapps.com/api/invoke`;
+    const opt = {
+        headers: {
+            Accept: 'application/json',
+            Authorization: token,
+            ['x-ms-path-query']: `providers/Microsoft.PowerApps/connections?$expand=permissions($filter=maxAssignedTo('${userId}'))&$filter=environment eq '${environmentName}' and ApiId not in ('shared_logicflows','shared_powerflows')&api-version=2020-06-01&$top=999`
+        }
+    }
+    return axios.get(uri, opt)
+
+}
+
+export const GetConnections = async (token: string, environmentName: string, userId: string) => {
+
+    const uri = `https://unitedstates.api.powerapps.com/api/invoke`;
+    const opt = {
+        headers: {
+            Accept: 'application/json',
+            Authorization: token,
+            ['x-ms-path-query']: `providers/Microsoft.PowerApps/connections?$expand=permissions($filter=maxAssignedTo('${userId}'))&$filter=environment eq '${environmentName}' and ApiId not in ('shared_logicflows','shared_powerflows')&api-version=2020-06-01&$top=999`
+        }
+    }
+    return axios.get(uri, opt)
+
+}
+
+export const GetConnectionsNames = async (token: string, environmentName: string, userId: string) => {
+
+    const uri = `https://unitedstates.api.powerapps.com/api/invoke`;
+    const opt = {
+        headers: {
+            Accept: 'application/json',
+            Authorization: token,
+            ['x-ms-path-query']: `/providers/Microsoft.PowerApps/apis?showApisWithToS=true&$expand=permissions($filter=maxAssignedTo('${userId}'))&$filter=environment eq '${environmentName}'&api-version=2020-06-01`
+        }
+    }
+    return axios.get(uri, opt)
+
+}
+
+export const GetWithNextLink = (token: string, nextLink: string) => {
+
+    opt.headers.Authorization = token;
+    return axios.get(nextLink, opt as any)
+}
+
+export const GetDeletedFlows = (token: string, environmentName: string) => {
+
+    const uri = `https://us.api.flow.microsoft.com/providers/Microsoft.ProcessSimple/environments/${environmentName}/flows?$top=50&include=includeDeletedFlows&api-version=2016-11-01`;
     opt.headers.Authorization = token;
     return axios.get(uri, opt as any)
 }

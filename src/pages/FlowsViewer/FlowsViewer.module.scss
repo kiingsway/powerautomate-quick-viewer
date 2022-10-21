@@ -1,0 +1,190 @@
+.Viewer {
+    &_Header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #0177FF;
+        &_Logo {
+            line-height: 1em;
+            font-size: 20px;
+            display: flex;
+            flex-direction: column;
+            margin-left: 10px;
+            &_Desc {
+                font-size: 12px;
+                color: #DDD;
+            }
+        }
+        &_Logout {
+            transition: all 100ms;
+            &:hover {
+                background-color: #0260CC !important;
+            }
+            &:active {
+                background-color: #0154B2 !important;
+            }
+            &_Btn {
+                display: flex;
+                flex-direction: column;
+                text-align: end;
+                margin-right: 10px;
+                line-height: 1em;
+                &_Name {
+                    color: white
+                }
+                &_Email {
+                    font-size: 12px;
+                    color: #DDD
+                }
+            }
+            &_Dialog {
+                &_Persona {
+                    margin: 10px;
+                }
+            }
+        }
+    }
+    &_Breadcrumb {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 10px;
+        &_List {
+            margin: 0;
+            flex: 1 1 40px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            padding: 10px 16px;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            line-height: 2em;
+            font-size: 20px;
+            &_MenuPage {
+                &_Icon {
+                    &_Selected {
+                        color: #288CFF;
+                    }
+                }
+                &_Text {
+                    &_Selected {
+                        font-weight: 500;
+                        background-color: #333;
+                        // border: 1px solid #AAA
+                    }
+                }
+            }
+            &_Item {
+                display: flex;
+                align-items: center;
+                font-size: 18px;
+                &_0 {
+                    font-weight: 500;
+                    margin: 0;
+                    padding: 0;
+                    color: white;
+                    box-sizing: border-box;
+                    font-size: 18px;
+                    &_Link {
+                        cursor: pointer;
+                        color: #479ef5;
+                        &:hover {
+                            text-decoration: underline;
+                        }
+                    }
+                }
+                &_1 {
+                    font-weight: 500;
+                }
+            }
+        }
+        & li+li:before {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            padding: 8px;
+            color: white;
+            content: "›";
+        }
+    }
+    &_Table {
+        &_BtnSelectFlow {
+            min-width: none;
+            justify-content: flex-start !important;
+            text-align: start !important;
+            // max-width: 500px;
+            box-sizing: border-box;
+        }
+    }
+}
+
+.BlueScroll {
+    transform: 1s all;
+    /* width */
+    &::-webkit-scrollbar {
+        width: 6px !important;
+        border: 1px solid #FFFFFF55;
+        border-radius: 20px;
+        &:active {
+            border: 1px solid #FFFFFF22;
+        }
+    }
+    /* Track */
+    &::-webkit-scrollbar-track {
+        border-radius: 20px !important;
+        background: #000C1944;
+        transform: 1s all;
+    }
+    /* Handle */
+    &::-webkit-scrollbar-thumb {
+        background: #0177FF;
+        border-radius: 20px;
+    }
+    /* Handle on hover */
+    &::-webkit-scrollbar-thumb:hover {
+        background: #0260CC;
+    }
+}
+
+.FadeIn {
+    -moz-animation: fadein 600ms;
+    /* Firefox */
+    -webkit-animation: fadein 600ms;
+    /* Safari and Chrome */
+    -o-animation: fadein 600ms;
+    /* Opera */
+    animation: fadein 600ms;
+    @keyframes fadein {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-moz-keyframes fadein {
+        /* Firefox */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-webkit-keyframes fadein {
+        /* Safari and Chrome */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @-o-keyframes fadein {
+        /* Opera */
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+}

@@ -1,0 +1,105 @@
+.Alerts {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-start;
+    max-height: 225px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    &_Header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        position: -webkit-sticky;
+        position: sticky;
+        width: 100%;
+        top: 0;
+        z-index: 999;
+        padding: 4px 7px;
+        &_Title {
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            background-color: #FFFFFFAA;
+        }
+    }
+    &_Container {
+        width: 100%;
+    }
+    &_CloseAll {
+        flex: 0 0 auto;
+        background-color: #00000077;
+        -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(4px);
+    }
+    &_Item {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        margin: 1px;
+        border-radius: 4px;
+        padding: 2px 8px;
+        &_Time {
+            opacity: 0.8;
+            font-weight: 500;
+            font-size: 12px;
+            width: 75px;
+        }
+        &_Message {
+            line-height: 1.3em;
+        }
+        &_Close {
+            font-weight: 500;
+            padding: 5px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: row;
+            align-content: center;
+            align-items: center;
+            justify-content: center;
+            transition: all 100ms;
+            &:hover {
+                transition: all 100ms;
+                background-color: #999999AA;
+                // opacity: 0.9;
+            }
+            &:active {
+                transition: all 100ms;
+                background-color: #444444AA;
+                // opacity: 0.4;
+            }
+        }
+    }
+}
+
+.BlueScroll {
+    transform: 1s all;
+    /* width */
+    &::-webkit-scrollbar {
+        width: 6px !important;
+        border: 1px solid #FFFFFF55;
+        border-radius: 20px;
+        &:active {
+            border: 1px solid #FFFFFF22;
+        }
+    }
+    /* Track */
+    &::-webkit-scrollbar-track {
+        border-radius: 20px !important;
+        background: #000C1944;
+        transform: 1s all;
+    }
+    /* Handle */
+    &::-webkit-scrollbar-thumb {
+        background: #0177FF;
+        border-radius: 20px;
+    }
+    /* Handle on hover */
+    &::-webkit-scrollbar-thumb:hover {
+        background: #0260CC;
+    }
+}

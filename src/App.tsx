@@ -1,133 +1,96 @@
-import React, { useEffect, useId, useState } from 'react';
-import styles from './App.module.scss';
-import { Card } from '@fluentui/react-components/unstable';
-import MainScreen from './components/MainScreen';
-import { GetEnvironments } from './services/requests';
-import { Button, Input, Label, Spinner, Textarea, Tooltip } from '@fluentui/react-components';
-import { BiClipboard } from 'react-icons/bi'
-import { SiSpinrilla } from 'react-icons/si'
+import { useState } from 'react'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import { IEnvironment, IGetJwt, IJwt, IToken } from './interfaces';
+import Login from './pages/Login';
+import { DateTime } from 'luxon';
+import FlowsViewer from './pages/FlowsViewer';
 
-export default function App() {
+const App = () => {
 
-  const [token, setToken] = useState<string>('')
-  const [environments, setEnvironments] = useState<any[]>([])
-  const [error, setError] = useState<string | JSX.Element>(<></>);
-  const [loadingLogin, setLoadingLogin] = useState(false);
+  const [token, setToken] = useState<IToken>({ text: '', jwt: null });
+  const [selectedEnvironment, selectEnvironment] = useState<IEnvironment | null>(null);
 
-  useEffect(() => {
-    if (environments.length) console.log(environments)
+  const handleToken = (newToken: string) => setToken({ text: newToken, jwt: GetJwt(newToken) })
+  const handleLogout = () => selectEnvironment(null);
 
-  }, [environments])
-
-  const handleLogout = () => setEnvironments([]);
-  const handleLogin = () => {
-    setLoadingLogin(true)
-
-    GetEnvironments(token)
-      .then((envsData: any) => {
-        setError(<></>)
-        setEnvironments(envsData.data.value)
-      })
-      .catch(e => handleErrors(e))
-      .finally(() => {
-        setLoadingLogin(false);
-      })
-  }
-  const handleErrors = (e: any) => {
-
-    // alert(JSON.stringify(e));
-    // console.log(e);
-
-    let error: string | JSX.Element = JSON.stringify(e);
-
-    if (e?.response?.data?.error?.code) error = <><b>({e.response.data.error.code})</b>: {e.response.data.error.message}</>
-
-    setError(error)
-
-
-  }
-
+  if (selectedEnvironment && token.jwt) return (
+    <FlowsViewer
+      selectedEnvironment={selectedEnvironment}
+      token={token}
+      handleLogout={handleLogout}
+    />
+  )
 
   return (
-
-    <div className={styles.App}>
-
-      <div className={styles.cardContainer}>
-
-        {
-          environments.length ?
-            <MainScreen
-              environments={environments}
-              handleLogout={handleLogout}
-              token={token}
-            />
-            :
-            <LoginPage handleLogin={handleLogin} token={token} setToken={setToken} error={error} loadingLogin={loadingLogin} />
-        }
-
-      </div>
-
-    </div>
+    <Login
+      token={token}
+      handleToken={handleToken}
+      selectEnvironment={selectEnvironment}
+    />
   );
 }
 
-const LoginPage = (pr: { handleLogin: any, token: string; setToken: any; error: string | JSX.Element; loadingLogin: boolean }) => {
+export default App;
 
-  const txtBearer = useId();
+const GetJwt: IGetJwt = (token: string) => {
 
-  const handlePaste = () => {
+  if (token && token.includes('.')) {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = JSON.parse(decodeURIComponent(
+        window
+          .atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      ));
 
-    navigator.clipboard.readText()
-      .then(text => {
-        pr.setToken(text)
-      })
-      .catch(err => {
-        alert('Failed to read clipboard contents: ' + err);
-      });
+      return {
+        expires: jsonPayload.exp,
+        name: jsonPayload.name,
+        given_name: jsonPayload.given_name,
+        email: jsonPayload?.unique_name || jsonPayload.upn
+      };
+
+    } catch (e) { return null }
+  } else return null
+
+}
+
+export const FriendlyDate = ({ date }: { date: DateTime }) => {
+  const now = DateTime.now().setLocale('pt-BR');
+  const dateTime = date.setLocale('pt-BR');
+  const isDateHasSameMonth = date.hasSame(now, 'month');
+  const friendlyDates = {
+    tomorrow: `amanhã às ${dateTime.toFormat('HH:mm')}`,
+    today: `hoje às ${dateTime.toFormat('HH:mm')}`,
+    yesterday: `ontem às ${dateTime.toFormat('HH:mm')}`,
+    week: `${dateTime.toFormat(`cccc (dd${isDateHasSameMonth ? '' : ' LLL'})`)} às ${dateTime.toFormat('HH:mm')}`,
+    year: `${dateTime.toFormat('dd LLL')} às ${dateTime.toFormat('HH:mm')}`,
+    fullDate: dateTime.toFormat('dd LLL yyyy HH:mm')
   }
 
-  return (
-    <Card className={styles.login}>
-
-      <Label htmlFor={txtBearer} className={styles.login_label}>
-        Insira o Token Bearer
-      </Label>
-
-      <div className={styles.login_form}>
-        <Input
-          id={txtBearer}
-          type="search"
-          placeholder="Bearer ey..."
-          value={pr.token}
-          onChange={e => pr.setToken(e.target.value)}
-
-          contentAfter={(
-            <BiClipboard
-              onClick={handlePaste}
-              title='Colar'
-              className={styles.login_pasteToken} />
-          )}
-        />
-      </div>
-
-      <span className={styles.login_error}>
-        {pr.error}
-      </span>
-
-      <Button
-        disabled={pr.loadingLogin}
-        appearance="primary"
-        onClick={pr.handleLogin}
-        className={styles.login_button}
-      >
-        {pr.loadingLogin ?
-          <>
-            <Spinner size='tiny' />
-          </>
-          :
-          'Login'}
-      </Button>
-
-    </Card>
+  const Span = ({ children }: { children: any }) => (
+    <span title={dateTime.toFormat('dd/LL/yyyy HH:mm:ss')}>
+      {children}
+    </span>
   )
+
+  if (dateTime.hasSame(now.plus({ days: 1 }), 'day'))
+    return <Span>{friendlyDates.tomorrow}</Span>
+
+  if (dateTime.hasSame(now, 'day'))
+    return <Span>{friendlyDates.today}</Span>
+
+  if (dateTime.hasSame(now.minus({ days: 1 }), 'day'))
+    return <Span>{friendlyDates.yesterday}</Span>
+
+  if (dateTime.hasSame(now, 'week'))
+    return <Span>{friendlyDates.week}</Span>
+
+  if (dateTime.hasSame(now, 'year'))
+    return <Span>{friendlyDates.year}</Span>
+
+  return <Span>{friendlyDates.fullDate}</Span>
 }

@@ -1,0 +1,127 @@
+.Table {
+    width: 100%;
+    &_Pagination {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        font-size: 12px;
+        padding: 5px 0;
+        &_Page {
+            border: none;
+            border-radius: 4px;
+            margin: 0px 0;
+            padding: 5px 14px;
+            width: auto;
+            overflow: visible;
+            background-color: transparent;
+            color: white;
+            font-weight: 500;
+            transition: all 100ms;
+            &:disabled {
+                background-color: transparent !important;
+                opacity: 0.5;
+            }
+            &:hover {
+                background-color: #5B5FC7;
+            }
+            &:active {
+                background-color: #383966;
+            }
+            &_Active {
+                background-color: #4F52B2;
+            }
+        }
+    }
+    &_Container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        padding: 10px;
+        overflow: auto;
+        height: calc(100vh - 200px);
+        flex: 0 0 auto;
+        border-radius: 4px;
+        box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;
+    }
+    &_GlobalFilter::placeholder {
+        color: inherit;
+        opacity: .7;
+    }
+    &_Column {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
+        &_Text {
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        &_SortIcon {
+            margin: 1px 4px 0 6px;
+        }
+        &_MenuIcon {
+            opacity: 0;
+            transition: visibility 0s 200ms, opacity 200ms linear;
+            margin: 2px 0 0 6px;
+        }
+        &:hover &_MenuIcon {
+            visibility: visible !important;
+            opacity: 1;
+            transition: opacity 200ms linear;
+        }
+        &_FilterSelect {
+            width: 100%;
+            text-overflow: ellipsis;
+        }
+    }
+    & tbody {
+        padding-top: 10px;
+        margin-top: 10px;
+    }
+    & thead tr th {
+        padding: 5px 10px;
+    }
+    &_Columns {
+        outline: 1px solid #666666;
+        box-shadow: rgba(0, 0, 0, 0.25) 0px 6px 6px -2px, rgba(0, 0, 0, 0.3) 0px 3px 4px -3px;
+        position: -webkit-sticky;
+        position: sticky;
+        z-index: 100;
+        top: 0;
+        padding: 5px 8px;
+        border-radius: 3px;
+        background-color: #333333AA;
+        -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(4px);
+    }
+}
+
+.modern_scroll {
+    transition: all 200ms !important;
+    /* width */
+    &::-webkit-scrollbar {
+        width: 6px !important;
+        border: 1px solid #FFFFFF55;
+        border-radius: 20px;
+        &:active {
+            border: 1px solid #FFFFFF22;
+        }
+    }
+    /* Track */
+    &::-webkit-scrollbar-track {
+        border-radius: 20px !important;
+        background: #000C1944;
+        transform: 1s all;
+    }
+    /* Handle */
+    &::-webkit-scrollbar-thumb {
+        background: #0177FF;
+        border-radius: 20px;
+    }
+    /* Handle on hover */
+    &::-webkit-scrollbar-thumb:hover {
+        background: #0260CC;
+    }
+}
