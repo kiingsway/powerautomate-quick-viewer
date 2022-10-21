@@ -152,8 +152,8 @@
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    align-items: start;
-    justify-content: start;
+    align-items: flex-start;
+    justify-content: flex-start;
     &_Header {
         margin: 5px 0;
         padding: 0 10px;

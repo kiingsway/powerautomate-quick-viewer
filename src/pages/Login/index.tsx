@@ -24,6 +24,8 @@ interface Props {
 
 export default function Login({ token, handleToken, selectEnvironment }: Props) {
 
+  console.log(styles)
+
   const [environments, setEnvironments] = useState<IEnvironment[]>();
   const [alerts, setAlerts] = useState<IAlert[]>();
 
@@ -187,7 +189,7 @@ const SelectEnvironmentPage = ({ token, selectEnvironment, environments, handleL
           shape="square"
           icon={<BiBuilding />}
           aria-label={env.properties.displayName} />}>
-            
+
         {env.properties.displayName} <IsEnvDefault />
 
       </CompoundButton>
