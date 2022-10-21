@@ -132,14 +132,16 @@ export default function HistoriesCard({ flow, token, handleAlerts, updateRuns }:
               icon={loading ? <Spinner size='tiny' /> : <BsArrowClockwise />}
               appearance='subtle' />
           </Tooltip>
-          <Tooltip content={'Expandir janela de execuções...'} relationship={'label'}>
-            <Button
-              size='small'
-              className='m-0 px-0 py-1'
-              disabled={loading}
-              icon={<AiOutlineFullscreen />}
-              appearance='subtle' />
-          </Tooltip>
+          {true ? null :
+            <Tooltip content={'Expandir janela de execuções...'} relationship={'label'}>
+              <Button
+                size='small'
+                className='m-0 px-0 py-1'
+                disabled={loading}
+                icon={<AiOutlineFullscreen />}
+                appearance='subtle' />
+            </Tooltip>
+          }
         </div>
       </div>
       <Divider className={styles.DetailsCard_Header_Divider} />
