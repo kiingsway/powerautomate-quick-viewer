@@ -1,3 +1,4 @@
+import { IToken } from '../../interfaces'
 
 export interface IAlertMessage {
     intent: IAlert['intent'];

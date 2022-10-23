@@ -5,33 +5,30 @@ import Login from './pages/Login';
 import { DateTime } from 'luxon';
 import FlowsViewer from './pages/FlowsViewer';
 
-const App = () => {
+export default function App(): JSX.Element {
 
   const [token, setToken] = useState<IToken>({ text: '', jwt: null });
   const [selectedEnvironment, selectEnvironment] = useState<IEnvironment | null>(null);
 
-  const handleToken = (newToken: string) => setToken({ text: newToken, jwt: GetJwt(newToken) })
+  const handleToken = (newToken: string) => setToken({ text: newToken, jwt: GetJwt(newToken) });
   const handleLogout = () => selectEnvironment(null);
 
-  if (selectedEnvironment && token.jwt) return (
-    <FlowsViewer
-      selectedEnvironment={selectedEnvironment}
-      token={token}
-      handleLogout={handleLogout}
-    />
-  )
+  if (selectedEnvironment && token.jwt)
+    return (
+      <FlowsViewer
+        selectedEnvironment={selectedEnvironment}
+        token={token}
+        handleLogout={handleLogout} />
+    );
 
   return <Login
     token={token}
     handleToken={handleToken}
-    selectEnvironment={selectEnvironment}
-  />
+    selectEnvironment={selectEnvironment} />;
 
 }
 
-export default App;
-
-const GetJwt: IGetJwt = (token: string) => {
+function GetJwt(token: string): IToken['jwt'] | null {
 
   if (token && token.includes('.')) {
     try {
@@ -52,12 +49,13 @@ const GetJwt: IGetJwt = (token: string) => {
         email: jsonPayload?.unique_name || jsonPayload.upn
       };
 
-    } catch (e) { return null }
-  } else return null
+    } catch (e) { return null; }
+  } else
+    return null;
 
 }
 
-export const FriendlyDate = ({ date }: { date: DateTime }) => {
+export function FriendlyDate({ date }: { date: DateTime; }): JSX.Element {
   const now = DateTime.now().setLocale('pt-BR');
   const dateTime = date.setLocale('pt-BR');
   const isDateHasSameMonth = date.hasSame(now, 'month');
@@ -68,28 +66,28 @@ export const FriendlyDate = ({ date }: { date: DateTime }) => {
     week: `${dateTime.toFormat(`cccc (dd${isDateHasSameMonth ? '' : ' LLL'})`)} às ${dateTime.toFormat('HH:mm')}`,
     year: `${dateTime.toFormat('dd LLL')} às ${dateTime.toFormat('HH:mm')}`,
     fullDate: dateTime.toFormat('dd LLL yyyy HH:mm')
-  }
+  };
 
-  const Span = ({ children }: { children: any }) => (
+  const Span = ({ children }: { children: any; }) => (
     <span title={dateTime.toFormat('dd/LL/yyyy HH:mm:ss')}>
       {children}
     </span>
-  )
+  );
 
   if (dateTime.hasSame(now.plus({ days: 1 }), 'day'))
-    return <Span>{friendlyDates.tomorrow}</Span>
+    return <Span>{friendlyDates.tomorrow}</Span>;
 
   if (dateTime.hasSame(now, 'day'))
-    return <Span>{friendlyDates.today}</Span>
+    return <Span>{friendlyDates.today}</Span>;
 
   if (dateTime.hasSame(now.minus({ days: 1 }), 'day'))
-    return <Span>{friendlyDates.yesterday}</Span>
+    return <Span>{friendlyDates.yesterday}</Span>;
 
   if (dateTime.hasSame(now, 'week'))
-    return <Span>{friendlyDates.week}</Span>
+    return <Span>{friendlyDates.week}</Span>;
 
   if (dateTime.hasSame(now, 'year'))
-    return <Span>{friendlyDates.year}</Span>
+    return <Span>{friendlyDates.year}</Span>;
 
-  return <Span>{friendlyDates.fullDate}</Span>
+  return <Span>{friendlyDates.fullDate}</Span>;
 }
