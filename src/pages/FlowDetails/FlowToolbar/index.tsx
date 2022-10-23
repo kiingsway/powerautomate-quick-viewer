@@ -210,7 +210,6 @@ const EditFlowButton = ({ flow, token, loadingAny, handleAlerts, setLoadingAny, 
   return (
     <Dialog open={dialogOpen}>
       <DialogTrigger>
-
         <Button
           appearance='subtle'
           onClick={() => setDialog(true)}

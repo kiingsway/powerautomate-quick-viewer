@@ -1,4 +1,4 @@
-import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, MenuItemRadio } from '@fluentui/react-components';
+import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from '@fluentui/react-components';
 import { Persona } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import { DateTime } from 'luxon';
@@ -34,8 +34,6 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
   const [alerts, setAlerts] = useState<IAlert[]>([]);
   const [flows, setFlows] = useState<IFlow[]>();
   const [page, setPage] = useState<AppPages>('FlowLists');
-
-
 
   const handleAlerts = ({ add, remove, removeAll }: IHandleAlertsProps) => {
     if (!add && !remove && !removeAll) return
@@ -83,12 +81,6 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
         let flows = prevFlows;
         const indexToUpdate = flows.map(f => f.name).indexOf(flowName);
 
-        const statesBr = {
-          Started: 'Ativado',
-          Suspended: 'Suspenso',
-          Stopped: 'Parado'
-        }
-
         const state = action.edit?.state ? action.edit.state : flows[indexToUpdate].properties.state;
         const displayName = action.edit?.title ? action.edit.title : flows[indexToUpdate].properties.displayName;
         const definition = action.edit?.definition ? action.edit.definition : flows[indexToUpdate].properties.definition;
@@ -129,19 +121,16 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
 
   const handleSetFlow: IHandleSetFlow = (flowName: IFlow['name'] | null) => {
 
-    if (!flowName) {
-      selectFlow(null);
-      return
-    }
+    if (!flowName) { selectFlow(null); return new Promise(() => { }) }
 
     setLoadingFlow(true)
 
-    return GetFlow(token.text, selectedEnvironment.name, flowName)
+    return new Promise(() => GetFlow(token.text, selectedEnvironment.name, flowName)
       .catch(e => handleAlerts({ add: { message: e, intent: 'error', createdDateTime: DateTime.now() } }))
       .then(flowData => {
         selectFlow(flowData?.data)
       })
-      .finally(() => setLoadingFlow(false))
+      .finally(() => setLoadingFlow(false)))
 
   }
 
@@ -152,7 +141,7 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
     GetFlows(token.text, selectedEnvironment.name, sharedType)
       .then(flowsData => {
 
-        let newFlows = flowsData.data?.value as any[] || [];
+        let newFlows: any[] = flowsData.data?.value || [];
 
         const getClienteFlow = (name: string) => {
           let cliente: string = '';
@@ -166,20 +155,21 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
           return cliente
         }
 
-        const getAmbienteFlow = (name: string) => {
-          if (name.toLowerCase().includes(' dev]'))
+        const getAmbienteFlow = (flowDName: string) => {
+          const name = flowDName.toLowerCase();
+          if (name.includes(' dev]'))
             return 'DEV'
-          if (name.toLowerCase().includes(' dev class]'))
+          if (name.includes(' dev class]'))
             return 'DEV Class'
-          if (name.toLowerCase().includes(' dev cliente]'))
+          if (name.includes(' dev cliente]'))
             return 'DEV Cliente'
-          if (name.toLowerCase().includes(' hml]'))
+          if (name.includes(' hml]'))
             return 'HML'
-          if (name.toLowerCase().includes(' hml class]'))
+          if (name.includes(' hml class]'))
             return 'HML Class'
-          if (name.toLowerCase().includes(' hml cliente]'))
+          if (name.includes(' hml cliente]'))
             return 'HML Cliente'
-          if (name.toLowerCase().includes(' prod]'))
+          if (name.includes(' prod]'))
             return 'PROD'
         }
 
@@ -215,6 +205,7 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
             ...prevFlows.filter(f => f.sharedType !== sharedTypes[sharedType])
           ]
         });
+        if (sharedType === 'personal' && uniqueNewFlows.length <= 10) handleGetFlows('team', true)
         setObtainedFlows(prev => ({ ...prev, [sharedType]: DateTime.now() }))
 
       })
@@ -225,7 +216,6 @@ export default function FlowsViewer({ token, handleLogout, selectedEnvironment, 
       .finally(() => {
         setLoadingFlows(prev => ({ ...prev, [sharedType]: false }))
       })
-
   }
 
   useEffect(() => handleGetFlows('personal', true), [])
@@ -583,25 +573,31 @@ const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows,
   return (
     <div className='ps-2 mt-2'>
       <CompoundButton
+        title='Caso Meus fluxos tiver menos que 10 fluxos, os fluxos compartilhados serão obtidos automaticamente.'
         size='small'
         appearance='subtle'
         disabled={isLoadingPersonalFlows || isLoadingTeamFlows}
         onClick={() => handleGetFlows('personal', true)}
         className='me-3'
-        secondaryContent={obtainedFlows.personal && !loadingFlows.personal ? <>Obtido <FriendlyDate date={obtainedFlows.personal as DateTime} /></> : undefined}
+        secondaryContent={obtainedFlows.personal ? <>Obtido <FriendlyDate date={obtainedFlows.personal as DateTime} /></> : undefined}
         icon={isLoadingPersonalFlows ? <Spinner size='small' /> : <BsFillPersonFill />}>
-        {obtainedFlows.personal ? (isLoadingPersonalFlows ? 'Atualizando' : 'Atualizar') : (isLoadingPersonalFlows ? 'Obtendo' : 'Obter')} meus fluxos
+        {obtainedFlows.personal ? (isLoadingPersonalFlows ? 'Atualizando' : 'Atualizar') : (isLoadingPersonalFlows ? 'Obtendo' : 'Obter')} meus fluxos{isLoadingPersonalFlows ? '...' : null}
       </CompoundButton>
       <CompoundButton
         size='small'
         appearance='subtle'
         disabled={isLoadingPersonalFlows || isLoadingTeamFlows}
         onClick={() => handleGetFlows('team', true)}
-        secondaryContent={obtainedFlows.team && !loadingFlows.team ? <>Obtido <FriendlyDate date={obtainedFlows.team as DateTime} /></> : undefined}
+        secondaryContent={obtainedFlows.team ? <>Obtido <FriendlyDate date={obtainedFlows.team as DateTime} /></> : undefined}
         icon={isLoadingTeamFlows ? <Spinner size='small' /> : <BsPeopleFill />}>
-        {obtainedFlows.team ? (isLoadingTeamFlows ? 'Atualizando...' : 'Atualizar') : (isLoadingTeamFlows ? 'Obtendo' : 'Obter')} fluxos compartilhados
+        {obtainedFlows.team ? (isLoadingTeamFlows ? 'Atualizando' : 'Atualizar') : (isLoadingTeamFlows ? 'Obtendo' : 'Obter')} fluxos compartilhados{isLoadingTeamFlows ? '...' : null}
       </CompoundButton>
-      {flows && !flows.length && !isLoadingPersonalFlows ? 'Nenhum fluxo encontrado neste ambiente.' : null}
+
+      {flows && !flows.length && !isLoadingPersonalFlows ?
+        <div className="d-flex flex-row align-items-center justify-content-center w-100">
+          <h4>Nenhum fluxo encontrado neste ambiente.</h4>
+        </div> : <></>}
+
       {flows && flows.length ?
         <div className={styles.FadeIn}>
           <QuickTable

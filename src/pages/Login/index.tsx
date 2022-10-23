@@ -5,16 +5,12 @@ import { Card } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import uuid from 'react-uuid';
 import { GetEnvironments } from '../../services/requests';
-import { Input, Button, Spinner, Avatar, Divider, CompoundButton, Badge } from '@fluentui/react-components';
-import { BiBuilding, BiClipboard, BiInfoCircle } from 'react-icons/bi';
-import { TbAlertTriangle } from 'react-icons/tb';
+import { Input, Button, Spinner, Avatar, CompoundButton, Badge } from '@fluentui/react-components';
+import { BiBuilding, BiClipboard } from 'react-icons/bi';
 import { HiOutlineExternalLink } from 'react-icons/hi';
-import { AiOutlineExclamationCircle, AiOutlineQuestionCircle } from 'react-icons/ai';
-import { BsCheckCircle } from 'react-icons/bs';
-import { IoMdClose } from 'react-icons/io';
 import { DateTime } from 'luxon';
-import { FriendlyDate } from '../../App';
-import { IAlertMessage, IAlertsProps, ILoginPageProps, ISelectEnvPageProps } from './interfaces';
+import { ILoginPageProps, ISelectEnvPageProps } from './interfaces';
+import AppAlerts from '../../components/AppAlerts';
 
 interface Props {
   token: IToken;
@@ -22,12 +18,10 @@ interface Props {
   selectEnvironment: React.Dispatch<React.SetStateAction<IEnvironment | null>>;
 }
 
-export default function Login({ token, handleToken, selectEnvironment }: Props) {
-
-  console.log(styles)
+export default function Login({ token, handleToken, selectEnvironment }: Props): JSX.Element {
 
   const [environments, setEnvironments] = useState<IEnvironment[]>();
-  const [alerts, setAlerts] = useState<IAlert[]>();
+  const [alerts, setAlerts] = useState<IAlert[]>([]);
 
   const handleAlerts = ({ add, remove, removeAll }: IHandleAlertsProps) => {
     if (!add && !remove && !removeAll) return
@@ -42,13 +36,14 @@ export default function Login({ token, handleToken, selectEnvironment }: Props) 
         message = `${message?.code}: ${message?.message}`;
       } else message = String(add.message);
 
-      if (!(alerts || []).find(a => a.message === message))
-        setAlerts(prev => [{ id, message, intent, createdDateTime }, ...(prev || [])])
+      if (!alerts.find(a => a.message === message))
+        setAlerts(prev => [{ id, message, intent, createdDateTime }, ...prev]);
+      return
     }
 
-    if (remove) setAlerts(prev => (prev || []).filter(a => a.id !== remove))
+    if (remove) { setAlerts(prev => prev.filter(a => a.id !== remove)); return }
 
-    if (removeAll) setAlerts(prev => undefined)
+    if (removeAll) setAlerts([])
   }
 
   const handleLogout = () => {
@@ -58,62 +53,81 @@ export default function Login({ token, handleToken, selectEnvironment }: Props) 
 
   return (
     <div className={styles.Screen}>
+
+      <div>
+        {alerts && alerts.length ?
+          <Card className={classNames(styles.AlertsCard, styles.BlueScroll)}>
+            <AppAlerts
+              alerts={alerts}
+              handleAlerts={handleAlerts} />
+          </Card> : null}
+      </div>
+
       <Card className={classNames('m-0', styles.Card)}>
         {environments && environments.length ?
           <SelectEnvironmentPage
             token={token}
             environments={environments}
             selectEnvironment={selectEnvironment}
-            handleLogout={handleLogout}
-          />
+            handleLogout={handleLogout} />
           :
           <LoginPage
             token={token}
             handleAlerts={handleAlerts}
             handleToken={handleToken}
-            setEnvironments={setEnvironments}
-          />
-        }
-
-
+            setEnvironments={setEnvironments} />}
       </Card>
-      {alerts && alerts.length ? <Card className={classNames(styles.AlertsCard, styles.BlueScroll)}>
-        <Alerts
-          maxHeight={300}
-          alerts={alerts}
-          handleAlerts={handleAlerts}
-        />
-      </Card> : null}
+
+      <div className='invisible'>
+        {alerts && alerts.length ?
+          <Card className={classNames(styles.AlertsCard, styles.BlueScroll)}>
+            <AppAlerts
+              alerts={alerts}
+              handleAlerts={handleAlerts} />
+          </Card> : null}
+      </div>
+
     </div>
   )
 }
 
-const LoginPage = ({ token, handleToken, handleAlerts, setEnvironments }: ILoginPageProps) => {
+function LoginPage({ token, handleToken, handleAlerts, setEnvironments }: ILoginPageProps): JSX.Element {
 
   const [loading, setLoading] = useState(false);
 
-  const handlePaste = () =>
-    navigator.clipboard.readText()
-      .then(text => handleToken(text))
-      .catch(e => handleAlerts({ add: { message: String(e), intent: 'warning' } }));
+  async function handlePaste(): Promise<void> {
+    try {
+      const text = await navigator.clipboard.readText();
+      return handleToken(text);
+    } catch (e) {
+      console.warn(e);
+      handleAlerts({
+        add: {
+          message: e,
+          intent: 'warning',
+          createdDateTime: DateTime.now()
+        }
+      });
+    }
+  }
 
-  const handleLogin = (e: any) => {
+  function handleLogin(e: any): void {
     e.preventDefault();
-    setLoading(true)
+    setLoading(true);
 
     GetEnvironments(token.text)
       .then(envData => {
         const newEnvironments = envData.data.value;
 
         if (!newEnvironments.length)
-          handleAlerts({ add: { id: 'NoEnv', message: 'Nenhum ambiente encontrado nesta autenticação.', intent: 'info' } })
+          handleAlerts({ add: { id: 'NoEnv', message: 'Nenhum ambiente encontrado nesta autenticação.', intent: 'info', } });
         else
           handleAlerts({ removeAll: true });
 
         setEnvironments(newEnvironments);
       })
-      .catch(e => handleAlerts({ add: { message: e, intent: 'error' } }))
-      .finally(() => setLoading(false))
+      .catch(e => handleAlerts({ add: { message: e, intent: 'error', createdDateTime: DateTime.now() } }))
+      .finally(() => setLoading(false));
   }
 
   return (
@@ -130,9 +144,8 @@ const LoginPage = ({ token, handleToken, handleAlerts, setEnvironments }: ILogin
           <BiClipboard
             onClick={handlePaste}
             title='Colar'
-            className={styles.LoginCard_PasteButton} />
-        )}
-      />
+            className={styles.LoginForm_PasteButton} />
+        )} />
       <Button
         disabled={loading || !Boolean(token.jwt)}
         appearance='primary'
@@ -150,12 +163,12 @@ const LoginPage = ({ token, handleToken, handleAlerts, setEnvironments }: ILogin
       </Button>
 
     </form>
-  )
+  );
 }
 
-const SelectEnvironmentPage = ({ token, selectEnvironment, environments, handleLogout }: ISelectEnvPageProps) => {
+function SelectEnvironmentPage({ token, selectEnvironment, environments, handleLogout }: ISelectEnvPageProps): JSX.Element {
 
-  const [selEnv, selectEnv] = useState<IEnvironment | null>(environments.filter(env => env.properties.isDefault)[0] || null)
+  const [selEnv, selectEnv] = useState<IEnvironment | null>(environments.filter(env => env.properties.isDefault)[0] || null);
 
   const handleLogin = () => selectEnvironment(selEnv);
 
@@ -164,16 +177,17 @@ const SelectEnvironmentPage = ({ token, selectEnvironment, environments, handleL
     const isDefault = env.properties.isDefault;
 
     const IsEnvDefault = () => {
-      if (!isDefault) return null
+      if (!isDefault)
+        return null;
       return (
         <Badge
-          appearance="filled"
+          appearance="outline"
           color="brand"
           className={styles.EnvironmentForm_Environments_Default}>
           Padrão
         </Badge>
-      )
-    }
+      );
+    };
 
     return (
       <CompoundButton
@@ -193,8 +207,8 @@ const SelectEnvironmentPage = ({ token, selectEnvironment, environments, handleL
         {env.properties.displayName} <IsEnvDefault />
 
       </CompoundButton>
-    )
-  }
+    );
+  };
 
   return (
     <div className={styles.EnvironmentForm}>
@@ -210,87 +224,6 @@ const SelectEnvironmentPage = ({ token, selectEnvironment, environments, handleL
         <Button appearance='primary' onClick={handleLogin}>Login</Button>
       </div>
 
-    </div >
-  )
-}
-
-const Alerts = ({ alerts, handleAlerts, maxHeight }: IAlertsProps) => {
-
-  if (!alerts.length) return null
-
-  return (
-    <div style={{ maxHeight, overflow: 'auto' }} className={styles.BlueScroll}>
-
-      {alerts.length > 1 ?
-        <div className='d-flex justify-content-end sticky-top'>
-          <Button
-            className={styles.AlertsCard_RemoveAllAlerts}
-            size='small'
-            appearance='secondary'
-            onClick={() => handleAlerts({ removeAll: true })}
-            icon={<IoMdClose />}>
-            Fechar todos
-          </Button>
-        </div> : null}
-
-      {alerts.map(alert =>
-        <AlertMessage
-          key={alert.id}
-          intent={alert.intent}
-          action={<Button
-            style={{ maxWidth: '300px' }}
-            size='small'
-            appearance='subtle'
-            onClick={() => handleAlerts({ remove: alert.id })}
-            icon={<IoMdClose />}>
-            Fechar
-          </Button>}>
-          {String(alert.message)}
-        </AlertMessage >
-      )}
-
     </div>
-  )
-}
-
-const AlertMessage = ({ intent, action, children }: IAlertMessage) => {
-
-  const IntentIcon = () => {
-    if (intent === 'success')
-      return <BsCheckCircle className='text-success flex-shrink-0' />
-
-    if (intent === 'info')
-      return <BiInfoCircle className='text-info flex-shrink-0' />
-
-    if (intent === 'warning')
-      return <TbAlertTriangle className='text-warning flex-shrink-0' />
-
-    if (intent === 'error')
-      return <AiOutlineExclamationCircle className='text-danger flex-shrink-0' />
-
-    return <AiOutlineQuestionCircle />
-  }
-
-  return (
-    <Card className={styles.AlertsCard_Alert}>
-
-      <div className={styles.AlertsCard_Alert_Body}>
-        <div className={styles.AlertsCard_Alert_Body_Icon}>
-          <IntentIcon />
-        </div>
-        <div className={styles.AlertsCard_Alert_Body_Time}>
-          <FriendlyDate date={DateTime.now()} />
-        </div>
-        <div className={styles.AlertsCard_Alert_Body_Children}>
-          {children}
-        </div>
-      </div>
-
-      <div className={styles.AlertsCard_Alert_Intent}>
-        {action}
-      </div>
-
-    </Card>
-  )
-
+  );
 }

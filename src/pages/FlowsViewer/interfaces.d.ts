@@ -68,7 +68,7 @@ export interface ICloudFlow {
   }
 }
 
-export type IHandleSetFlow = (flowName: IFlow['name'] | null) => Promise<void> | undefined;
+export type IHandleSetFlow = (flowName: IFlow['name'] | null) => Promise<unknown>
 
 export type IHandleUpdateFlowsList = (flowName: IFlow['name'], action: {
   remove?: boolean;

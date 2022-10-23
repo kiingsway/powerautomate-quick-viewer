@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { GetFlowConnections, GetFlowHistories } from '../../../services/requests';
+import { useEffect, useState } from 'react'
+import { GetFlowHistories } from '../../../services/requests';
 import { IFlowDetailsSummary } from '../interfaces';
 import { Card } from '@fluentui/react-components/unstable';
 import { Badge, Button, Divider, Spinner, Tooltip } from '@fluentui/react-components';
@@ -9,7 +9,6 @@ import { AiOutlineFullscreen } from 'react-icons/ai';
 import QuickTable, { IQuickTableStyleDefinition } from '../../../components/QuickTable';
 import { FriendlyDate } from '../../../App';
 import { DateTime } from 'luxon';
-import { tableStyle } from '../../FlowsViewer';
 import { IQuickTableColumn } from '../../../components/QuickTable/interfaces';
 import { IHandleAlerts } from '../../../interfaces';
 

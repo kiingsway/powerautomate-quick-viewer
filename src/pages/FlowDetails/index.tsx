@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import styles from './FlowDetails.module.scss'
 import DetailsCard from './DetailsCard';
 import FlowToolbar from './FlowToolbar';
@@ -24,70 +24,31 @@ interface Props {
 
 export default function FlowDetails({ token, selectedFlow, handleAlerts, handleSetFlow, handleUpdateFlowsList }: Props) {
 
+  // const [flow, setFlow] = useState<IFlowDetailsSummary>(summarizeFlow(selectedFlow))
   const [updateRuns, setUpdateRuns] = useState(false);
+
+  const flow: IFlowDetailsSummary = summarizeFlow(selectedFlow); 
+  
+
   const handleUpdateRuns = () => setUpdateRuns(prev => !prev)
-
-  const flowTriggerName = Object.keys(selectedFlow.properties.definition.triggers)[0];
-
-  console.log(selectedFlow)
-
-  const flow: IFlowDetailsSummary = {
-    name: selectedFlow.name,
-    displayName: selectedFlow.properties.displayName,
-    description: selectedFlow.properties.definition.description,
-    definition: selectedFlow.properties.definition,
-    state: selectedFlow.properties.state,
-    envName: selectedFlow.properties.environment.name,
-    lastModifiedTime: selectedFlow.properties.lastModifiedTime,
-    createdTime: selectedFlow.properties.createdTime,
-    flowFailureAlertSubscribed: selectedFlow.properties.flowFailureAlertSubscribed,
-    flowSuspensionReason: selectedFlow.properties.flowSuspensionReason,
-    flowSuspensionTime: selectedFlow.properties?.flowSuspensionTime,
-    trigger: {
-      uri: selectedFlow.properties.flowTriggerUri,
-      name: flowTriggerName,
-      summary: selectedFlow.properties.definitionSummary.triggers[0],
-      conditions: selectedFlow.properties.definition.triggers?.[flowTriggerName]?.conditions?.map((c: any) => c.expression),
-    },
-    actions: {
-      summary: selectedFlow.properties.definitionSummary.actions.map(a => a.swaggerOperationId ? a.swaggerOperationId : a.type),
-      value: selectedFlow.properties.definition.actions,
-    },
-    connections: {
-      names: Object.keys(selectedFlow.properties.connectionReferences),
-      references: selectedFlow.properties.connectionReferences,
-    }
-
-  }
-
-  const urlFlowInitial = `https://make.powerautomate.com/environments/${flow.envName}/flows/${flow.name}`
-
-  const urlFlow = {
-    edit: `${urlFlowInitial}`,
-    details: `${urlFlowInitial}/details`,
-    owners: `${urlFlowInitial}/owners`,
-    export: `${urlFlowInitial}/export`,
-    runs: `${urlFlowInitial}/runs`,
-  }
 
   return (
     <div
       className={classNames('py-0 px-3 row', styles.FadeIn)}
       style={{ rowGap: 20 }}>
 
-      <div className="col-12">
+      <div className="col-12 d-flex flex-row align-items-center justify-content-start">
         <FlowToolbar
           flow={flow}
           token={token}
           handleAlerts={handleAlerts}
           handleSetFlow={handleSetFlow}
           handleUpdateFlowsList={handleUpdateFlowsList}
-          handleUpdateRuns={handleUpdateRuns}
-        />
+          handleUpdateRuns={handleUpdateRuns} />
       </div>
 
       <div className='col-8'>
-        <DetailsCard flow={flow} />
+        <DetailsCard handleSetFlow={handleSetFlow} flow={flow} />
       </div>
 
       <div className='col-4 row' style={{ rowGap: 20 }}>
@@ -124,6 +85,41 @@ export default function FlowDetails({ token, selectedFlow, handleAlerts, handleS
     </div>
   )
 
+}
+
+function summarizeFlow(flow: IFlow) {
+
+  const flowTriggerName = Object.keys(flow.properties.definition.triggers)[0];
+
+  const flowSumm: IFlowDetailsSummary = {
+    name: flow.name,
+    displayName: flow.properties.displayName,
+    description: flow.properties.definition.description,
+    definition: flow.properties.definition,
+    state: flow.properties.state,
+    envName: flow.properties.environment.name,
+    lastModifiedTime: flow.properties.lastModifiedTime,
+    createdTime: flow.properties.createdTime,
+    flowFailureAlertSubscribed: flow.properties.flowFailureAlertSubscribed,
+    flowSuspensionReason: flow.properties.flowSuspensionReason,
+    flowSuspensionTime: flow.properties?.flowSuspensionTime,
+    trigger: {
+      uri: flow.properties.flowTriggerUri,
+      name: flowTriggerName,
+      summary: flow.properties.definitionSummary.triggers[0],
+      conditions: flow.properties.definition.triggers?.[flowTriggerName]?.conditions?.map((c: any) => c.expression),
+    },
+    actions: {
+      summary: flow.properties.definitionSummary.actions.map(a => a.swaggerOperationId ? a.swaggerOperationId : a.type),
+      value: flow.properties.definition.actions,
+    },
+    connections: {
+      names: Object.keys(flow.properties.connectionReferences),
+      references: flow.properties.connectionReferences,
+    }
+  }
+
+  return flowSumm
 }
 
 interface IDivCol {

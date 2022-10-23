@@ -1,5 +1,5 @@
 import React from 'react'
-import { AiOutlineExclamationCircle, AiOutlineQuestionCircle } from 'react-icons/ai';
+import { AiOutlineQuestionCircle } from 'react-icons/ai';
 import { BiInfoCircle } from 'react-icons/bi';
 import { IoMdClose } from 'react-icons/io';
 import { BsCheckCircle } from 'react-icons/bs';
@@ -7,7 +7,7 @@ import { TbAlertTriangle } from 'react-icons/tb';
 import { IAlert, IHandleAlerts } from '../../interfaces';
 import styles from './AppAlerts.module.scss'
 import classNames from 'classnames';
-import { Badge, Button } from '@fluentui/react-components';
+import { Button } from '@fluentui/react-components';
 import { VscCloseAll } from 'react-icons/vsc';
 import { GiCancel } from 'react-icons/gi';
 
@@ -18,7 +18,6 @@ interface Props {
 
 export default function AppAlerts({ alerts, handleAlerts }: Props) {
 
-
   if (!alerts.length) return null
 
   return (
@@ -26,18 +25,13 @@ export default function AppAlerts({ alerts, handleAlerts }: Props) {
 
       {alerts.length > 1 ?
         <div className={styles.Alerts_Header}>
-
-          <Badge className={styles.Alerts_Header_Title}>
-            Alertas ({alerts.length})
-          </Badge>
-
           <Button
             onClick={() => handleAlerts({ removeAll: true })}
             appearance='outline'
             size='small'
             className={styles.Alerts_CloseAll}
             icon={<VscCloseAll />}>
-            Fechar todos
+            Fechar {alerts.length} alertas
           </Button>
 
         </div> : null}
@@ -47,8 +41,8 @@ export default function AppAlerts({ alerts, handleAlerts }: Props) {
 
           const bgColors: Record<IAlert['intent'], React.CSSProperties['backgroundColor']> = {
             success: '#7AA56F',
-            warning: '#FFE162',
-            error: '#FF6464',
+            warning: '#332B00',
+            error: '#290000',
             info: '#454545',
           }
 

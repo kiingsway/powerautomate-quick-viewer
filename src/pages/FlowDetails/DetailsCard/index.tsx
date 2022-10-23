@@ -1,4 +1,4 @@
-import { Divider, Label, PresenceBadge } from '@fluentui/react-components';
+import { Button, Divider, Label, PresenceBadge, Spinner } from '@fluentui/react-components';
 import { Card } from '@fluentui/react-components/unstable';
 import { DivCol } from '..';
 import { IFlowDetailsSummary } from '../interfaces';
@@ -6,18 +6,36 @@ import styles from '../FlowDetails.module.scss'
 import { FriendlyDate } from '../../../App';
 import { DateTime } from 'luxon';
 import classNames from 'classnames';
+import { IHandleSetFlow } from '../../FlowsViewer/interfaces';
+import { BsArrowClockwise } from 'react-icons/bs';
+import { useState } from 'react';
 
 interface Props {
   flow: IFlowDetailsSummary;
+  handleSetFlow: IHandleSetFlow;
 }
 
-export default function DetailsCard({ flow }: Props) {
+export default function DetailsCard({ flow, handleSetFlow }: Props) {
+
+  const [loading, setLoading] = useState(false);
+
+  const handleGetFlow = () => {
+    setLoading(true);
+    handleSetFlow(flow.name).finally(() => setLoading(false))
+    setTimeout(() => {setLoading(false)}, 2000);
+  }
 
   return (
 
-    <Card className={styles.FlowInfoCard}>
-      <div className={styles.FlowInfoCard_Header}>
-        <span className={styles.FlowInfoCard_Header_Title}>Detalhes</span>
+    <Card className={styles.DetailsCard}>
+      <div className={styles.DetailsCard_Header}>
+        <span className={styles.DetailsCard_Header_Title}>Conexões</span>
+        <Button
+          onClick={handleGetFlow}
+          size='small'
+          disabled={loading}
+          icon={loading ? <Spinner size='tiny' /> : <BsArrowClockwise />}
+          appearance='subtle' />
       </div>
       <Divider className={styles.FlowInfoCard_Header_Divider} />
       <div className={styles.FlowInfoCard_Body}>
@@ -175,8 +193,6 @@ const FlowTrigger = ({ flow }: { flow: IFlowDetailsSummary }) => {
       }
     }
 
-    console.log(flow);
-
     return null;
   }
 
@@ -232,9 +248,10 @@ const FlowActionsSumm = ({ flow }: { flow: IFlowDetailsSummary }) => (
 )
 
 const FlowStatus = ({ flow }: { flow: IFlowDetailsSummary }) => {
+
   const isStarted = flow.state === 'Started';
   const isSuspended = flow.state === 'Suspended';
-  const isStopped = flow.state === 'Stopped';
+
   return (
     <div>
       <Label className={styles.FlowInfoCard_Body_Details_Label}>Status</Label>

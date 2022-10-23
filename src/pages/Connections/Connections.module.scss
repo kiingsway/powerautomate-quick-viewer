@@ -6,6 +6,7 @@
     max-height: 220px;
     overflow: auto;
     &_Item {
+        height: 100%;
         display: flex;
         flex-direction: row;
         align-items: center;

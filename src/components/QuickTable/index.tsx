@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { IFilterByField, IQuickTableColumn, IQuickTableProps, IQuickTableStyle, ISortState } from './interfaces';
-import { BsChevronDown, BsSortUp, BsSortDownAlt } from 'react-icons/bs'
+import { BsSortUp, BsSortDownAlt } from 'react-icons/bs'
 import uuid from 'react-uuid';
 import styles from './QuickTable.module.scss'
 import classNames from 'classnames';

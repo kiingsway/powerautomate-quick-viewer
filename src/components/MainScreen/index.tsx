@@ -87,7 +87,6 @@ export default function MainScreen(props: Props) {
         .catch(handleError)
         .then((flowData: any) => {
           const trigg = Object.keys(flowData.data.properties.definition.triggers)[0];
-          console.log(flowData?.data)
           GetFlowHistories(props.token, selEnv, selectedFlow.name, trigg)
             .catch(handleError)
             .then((historiesData: any) => {
