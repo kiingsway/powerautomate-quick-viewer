@@ -618,7 +618,7 @@ const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows,
 
 const MenuTitle = ({ flow }: { flow: IFlow }) => {
 
-  const [isLinkCopied, setLinkCopied] = useState(false);
+  const [copied, setCopied] = useState({ link: false, title: false });
 
   const urlFlowInitial = `https://make.powerautomate.com/environments/${flow.properties.environment.name}/flows/${flow.name}`
 
@@ -630,10 +630,11 @@ const MenuTitle = ({ flow }: { flow: IFlow }) => {
     runs: `${urlFlowInitial}/runs`,
   }
 
-  function handleCopyFlowName() {
-    setLinkCopied(true);
-    navigator.clipboard.writeText(urlFlow.details);
-    setTimeout(() => setLinkCopied(false), 2000)
+  function handleCopyFlowName(copiedText: 'link' | 'title') {
+    setCopied(prev => ({ ...prev, [copiedText]: true }));
+    if (copiedText === 'link') navigator.clipboard.writeText(urlFlow.details);
+    if (copiedText === 'title') navigator.clipboard.writeText(flow.properties.displayName);
+    setTimeout(() => setCopied(prev => ({ ...prev, [copiedText]: false })), 2000)
   }
 
   return (
@@ -681,10 +682,16 @@ const MenuTitle = ({ flow }: { flow: IFlow }) => {
           <MenuGroup>
             <MenuGroupHeader>Ações</MenuGroupHeader>
 
-            <MenuButton appearance={isLinkCopied ? 'primary' : 'subtle'}
-              menuIcon={null} onClick={handleCopyFlowName} disabled={isLinkCopied}
+            <MenuButton appearance={copied.link ? 'primary' : 'subtle'}
+              menuIcon={null} onClick={() => handleCopyFlowName('link')} disabled={copied.link}
               className={styles.FlowName_Menu_Item} icon={<BiCopy />}>
-              {isLinkCopied ? 'Copiado!' : 'Copiar link do fluxo'}
+              {copied.link ? 'Copiado!' : 'Copiar link do fluxo'}
+            </MenuButton>
+
+            <MenuButton appearance={copied.title ? 'primary' : 'subtle'}
+              menuIcon={null} onClick={() => handleCopyFlowName('title')} disabled={copied.title}
+              className={styles.FlowName_Menu_Item} icon={<BiCopy />}>
+              {copied.title ? 'Copiado!' : 'Copiar título do fluxo'}
             </MenuButton>
 
           </MenuGroup>
