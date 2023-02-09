@@ -44,6 +44,7 @@
         ]
     },
     "devDependencies": {
+        "@types/axios": "^0.14.0",
         "@types/luxon": "^3.0.2",
         "@types/prismjs": "^1.26.0"
     }

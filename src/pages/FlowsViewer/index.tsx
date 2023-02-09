@@ -1,12 +1,12 @@
-import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from '@fluentui/react-components';
+import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, MenuButton, MenuGroup, MenuGroupHeader, MenuDivider } from '@fluentui/react-components';
 import { Persona } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react'
-import { BiArrowBack, BiChevronDown } from 'react-icons/bi';
+import { BiArrowBack, BiChevronDown, BiCopy, BiDetail, BiHistory } from 'react-icons/bi';
 import { RiPlayList2Line } from 'react-icons/ri';
-import { BsFillPersonFill, BsPeopleFill, BsTrash } from 'react-icons/bs';
-import { VscDebugDisconnect } from 'react-icons/vsc';
+import { BsFillPersonFill, BsPeople, BsPeopleFill, BsTrash } from 'react-icons/bs';
+import { VscDebugDisconnect, VscExport } from 'react-icons/vsc';
 import uuid from 'react-uuid';
 import { FriendlyDate } from '../../App';
 import QuickTable, { IQuickTableColumnDefinition, IQuickTableStyleDefinition } from '../../components/QuickTable';
@@ -18,6 +18,8 @@ import styles from './FlowsViewer.module.scss'
 import { AppPages, IAppPage, IBreadcrumbProps, IFlow, IHandleSetFlow, IHandleUpdateFlowsList, IHeaderAppProps, IMainTableProps, ISharedType } from './interfaces';
 import Connections from '../Connections';
 import AppAlerts from '../../components/AppAlerts';
+import { AiOutlineEllipsis } from 'react-icons/ai'
+import { HiOutlinePencilAlt } from 'react-icons/hi';
 
 interface Props {
   token: IToken;
@@ -526,13 +528,14 @@ const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows,
       acessor: 'properties.displayName',
       filterable: false,
       render: (value: any, item: any) => (
-        <div className='px-4'>
+        <div className={styles.FlowName}>
           <Button
             onClick={() => handleSetFlow(item.name)}
-            className={classNames(styles.Viewer_Table_BtnSelectFlow, 'w-100')}
+            className={styles.FlowName_BtnSelectFlow}
             appearance='subtle'>
             {value}
           </Button>
+          <MenuTitle flow={flows.filter(f => f.name === item.name)[0]} />
         </div>
       )
 
@@ -611,6 +614,86 @@ const MainTable = ({ handleSetFlow, loadingFlows, handleGetFlows, obtainedFlows,
     </div>
   )
 
+}
+
+const MenuTitle = ({ flow }: { flow: IFlow }) => {
+
+  const [isLinkCopied, setLinkCopied] = useState(false);
+
+  const urlFlowInitial = `https://make.powerautomate.com/environments/${flow.properties.environment.name}/flows/${flow.name}`
+
+  const urlFlow = {
+    edit: `${urlFlowInitial}`,
+    details: `${urlFlowInitial}/details`,
+    owners: `${urlFlowInitial}/owners`,
+    export: `${urlFlowInitial}/export`,
+    runs: `${urlFlowInitial}/runs`,
+  }
+
+  function handleCopyFlowName() {
+    setLinkCopied(true);
+    navigator.clipboard.writeText(urlFlow.details);
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  return (
+    <Menu>
+
+      <MenuTrigger disableButtonEnhancement>
+        <Tooltip content="Abrir outras ações para este fluxo..." relationship="label" showDelay={3000}>
+          <MenuButton appearance='subtle' icon={<AiOutlineEllipsis />} size="small" />
+        </Tooltip>
+      </MenuTrigger>
+
+      <MenuPopover>
+        <MenuList>
+          <MenuGroupHeader className={styles.FlowName_Menu_Title}>{flow.properties.displayName}</MenuGroupHeader>
+          <MenuDivider />
+
+          <MenuGroup>
+            <MenuGroupHeader>Links do fluxo</MenuGroupHeader>
+            <MenuButton as='a' href={urlFlow.details} target='_blank' appearance='subtle' menuIcon={null}
+              className={styles.FlowName_Menu_Item} icon={<BiDetail />}>
+              Detalhes do fluxo
+            </MenuButton>
+
+            <MenuButton as='a' href={urlFlow.edit} target='_blank' appearance='subtle' menuIcon={null}
+              className={styles.FlowName_Menu_Item} icon={<HiOutlinePencilAlt />}>
+              Edição do fluxo
+            </MenuButton>
+
+            <MenuButton as='a' href={urlFlow.owners} target='_blank' appearance='subtle' menuIcon={null}
+              className={styles.FlowName_Menu_Item} icon={<BsPeople />}>
+              Proprietários do fluxo
+            </MenuButton>
+
+            <MenuButton as='a' href={urlFlow.export} target='_blank' appearance='subtle' menuIcon={null}
+              className={styles.FlowName_Menu_Item} icon={<VscExport />}>
+              Exportar fluxo
+            </MenuButton>
+
+            <MenuButton as='a' href={urlFlow.runs} target='_blank' appearance='subtle' menuIcon={null}
+              className={styles.FlowName_Menu_Item} icon={<BiHistory />}>
+              Execuções do fluxo
+            </MenuButton>
+          </MenuGroup>
+
+          <MenuGroup>
+            <MenuGroupHeader>Ações</MenuGroupHeader>
+
+            <MenuButton appearance={isLinkCopied ? 'primary' : 'subtle'}
+              menuIcon={null} onClick={handleCopyFlowName} disabled={isLinkCopied}
+              className={styles.FlowName_Menu_Item} icon={<BiCopy />}>
+              {isLinkCopied ? 'Copiado!' : 'Copiar link do fluxo'}
+            </MenuButton>
+
+          </MenuGroup>
+
+        </MenuList>
+      </MenuPopover>
+
+    </Menu >
+  )
 }
 
 export const tableStyle: IQuickTableStyleDefinition = {

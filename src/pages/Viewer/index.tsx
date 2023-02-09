@@ -1,16 +1,15 @@
-import { Avatar, Badge, Button, CompoundButton, Divider, LargeTitle, Link, PresenceBadge, Spinner, Tab, TabList, Title3, Tooltip } from '@fluentui/react-components';
-import { Alert, Card } from '@fluentui/react-components/unstable';
+import { Avatar, Badge, Button, CompoundButton, PresenceBadge, Spinner, Tooltip } from '@fluentui/react-components';
+import { Alert } from '@fluentui/react-components/unstable';
 import classNames from 'classnames';
 import { DateTime } from 'luxon';
-import React, { useEffect, useState } from 'react'
-import { BiDetail, BiHistory, BiLogOut, BiTrash } from 'react-icons/bi'
+import { useEffect, useState } from 'react'
+import { BiLogOut } from 'react-icons/bi'
 import { BsFillPersonFill, BsPeopleFill } from 'react-icons/bs'
 import { IoMdClose } from 'react-icons/io';
 import uuid from 'react-uuid';
 import QuickTable, { IQuickTableColumnDefinition, IQuickTableStyleDefinition } from '../../components/QuickTable';
 import { IToken } from '../../interfaces';
 import { GetFlows } from '../../services/requests';
-import FlowDetails from '../FlowDetails';
 import { AlertsProps, IAlert, IListFlowsProps, ILoadings, INavApp, TSharedTypes } from './interfaces';
 import styles from './Viewer.module.scss'
 
@@ -59,13 +58,6 @@ export default function Viewer(props: Props) {
       />
 
       <Breadcrumb />
-
-      {/* {selectedFlow &&
-        <FlowDetails
-          handleAlerts={}
-          token={props.token}
-          handleSetFlow={selectFlow}
-          selectedFlow={selectedFlow} />} */}
 
       <ListFlows
         selectFlow={selectFlow}
@@ -142,7 +134,6 @@ const timeGetDef: Record<TSharedTypes, null | DateTime> = {
 const ListFlows = (props: IListFlowsProps) => {
 
   const [flows, setFlows] = useState<any[]>([]);
-  const [connections, setConnections] = useState<any[]>([]);
   const [loadings, setLoadings] = useState<ILoadings>({ flows: { name: null, state: false } });
   const [alerts, setAlerts] = useState<IAlert[]>([]);
   const [timeGet, setTimeGet] = useState(timeGetDef)
@@ -224,14 +215,7 @@ const ListFlows = (props: IListFlowsProps) => {
 
   }
 
-  const handleGetConnections = () => {
-  }
-
-  useEffect(() => {
-
-    handleGetFlows('personal');
-    handleGetConnections();
-  }, [])
+  useEffect(() => handleGetFlows('personal'), []);
 
   const tableCols: IQuickTableColumnDefinition[] = [
     {
@@ -276,10 +260,11 @@ const ListFlows = (props: IListFlowsProps) => {
       render: (value: any, item: any) => (
         <Button
           onClick={() => props.selectFlow(item)}
-          className={classNames(styles.flist_select, 'w-100')}
+          className={styles.FlowName_BtnName}
           appearance='subtle'>
           {value}
-        </Button>)
+        </Button>
+      )
     },
     {
       title: 'Modificado',
@@ -344,11 +329,11 @@ const ListFlows = (props: IListFlowsProps) => {
           </div>
 
           <div>
-            {connections.map(conn => {
+            {/* {connections.map(conn => {
               return (
                 <Avatar name="King Sway" badge={{ status: 'busy' }} />
               )
-            })}
+            })} */}
           </div>
         </div>
 
