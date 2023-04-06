@@ -20,7 +20,7 @@ export function GetFlow(token: string, environmentName: string, flowName: string
 
 export function GetFlows(token: string, environmentName: string, sharedType: 'personal' | 'team') {
 
-    const uri = `${uriApiFlow}/environments/${environmentName}/flows?$filter=search('${sharedType}')&api-version=2016-11-01&$expand=properties.flowTriggerUri`;
+    const uri = `${uriApiFlow}/environments/${environmentName}/flows?$filter=search('${sharedType}')&api-version=2016-11-01&$expand=properties.flowTriggerUri&include=includeSolutionCloudFlows`;
     const opt = { headers: { ...defaultHeaders, Authorization: token } }
     return axios.get(uri, opt);
 }

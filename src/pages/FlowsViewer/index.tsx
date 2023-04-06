@@ -648,7 +648,9 @@ const MenuTitle = ({ flow }: { flow: IFlow }) => {
 
       <MenuPopover>
         <MenuList>
-          <MenuGroupHeader className={styles.FlowName_Menu_Title}>{flow.properties.displayName}</MenuGroupHeader>
+          <MenuGroupHeader className={styles.FlowName_Menu_Title} title={flow.properties.displayName}>
+            {flow.properties.displayName}
+            </MenuGroupHeader>
           <MenuDivider />
 
           <MenuGroup>
